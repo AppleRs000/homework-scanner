@@ -1,11 +1,10 @@
-const CACHE_NAME = 'homework-app-v1';
+const CACHE_NAME = 'homework-app-v2';
 const ASSETS = [
   './',
   './index.html',
-  'https://unpkg.com/html5-qrcode'
+  './html5-qrcode.min.js'
 ];
 
-// インストール時に必要なファイルをキャッシュ
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -15,7 +14,6 @@ self.addEventListener('install', (e) => {
   self.skipWaiting();
 });
 
-// オフライン時はキャッシュからページを返却
 self.addEventListener('fetch', (e) => {
   e.respondWith(
     caches.match(e.request).then((response) => {
