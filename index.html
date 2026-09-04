@@ -4,12 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>宿題提出スキャナー</title>
-    <!-- 外部ライブラリ読み込み -->
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         body { font-family: sans-serif; text-align: center; padding: 15px; background: #f4f4f9; margin: 0; }
         h2 { color: #333; margin-bottom: 10px; }
+        
+        /* 宿題切替エリア */
+        .task-manage-box { background: #fff; padding: 12px; border-radius: 8px; max-width: 400px; margin: 0 auto 15px auto; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .task-select-group { display: flex; gap: 8px; justify-content: center; align-items: center; }
+        select.task-select { padding: 8px; border-radius: 5px; border: 1px solid #ccc; font-size: 1rem; flex-grow: 1; max-width: 250px; }
+        .btn-add-task { padding: 8px 12px; background: #17a2b8; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+
+        /* タブ */
         .tab-group { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
         .tab-btn { padding: 10px 20px; border: none; border-radius: 20px; background: #ccc; font-weight: bold; cursor: pointer; }
         .tab-btn.active { background: #007bff; color: white; }
@@ -42,11 +49,23 @@
 
     <h2>📚 宿題提出スキャナー</h2>
 
+    <!-- 宿題選択・追加エリア -->
+    <div class="task-manage-box">
+        <div class="task-select-group">
+            <select id="task-select" class="task-select" onchange="changeTask()">
+                <!-- JSで動的に追加されます -->
+            </select>
+            <button class="btn-add-task" onclick="addNewTask()">＋ 宿題追加</button>
+        </div>
+    </div>
+
+    <!-- タブ切替 -->
     <div class="tab-group">
         <button class="tab-btn active" onclick="switchTab('scan')">📷 スキャン</button>
         <button class="tab-btn" onclick="switchTab('generate')">🔲 QR作成</button>
     </div>
 
+    <!-- スキャンタブ -->
     <div id="tab-scan" class="tab-content active">
         <div id="reader"></div>
         <div id="scan-message">QRコードをかざしてください</div>
@@ -54,13 +73,14 @@
         <div class="status-box">
             <div class="btn-group">
                 <button class="action-btn btn-export" onclick="exportToCSV()">📥 CSV出力</button>
-                <button class="action-btn btn-reset" onclick="resetData()">🔄 リセット</button>
+                <button class="action-btn btn-reset" onclick="resetCurrentData()">🔄 この宿題をリセット</button>
             </div>
             <h3>提出済みリスト (<span id="count">0</span>名)</h3>
             <ul id="student-list"></ul>
         </div>
     </div>
 
+    <!-- QR作成タブ -->
     <div id="tab-generate" class="tab-content">
         <div class="qr-gen-box">
             <h3>生徒番号用 QR作成</h3>
@@ -76,6 +96,98 @@
     </div>
 
     <script>
+        const STORAGE_KEY_TASKS = "homework_task_list";
+        const STORAGE_PREFIX = "homework_data_";
+
+        let tasks = [];
+        let currentTask = "";
+        let submittedSet = new Set();
+        let historyData = [];
+        let isProcessing = false;
+
+        const msgArea = document.getElementById("scan-message");
+
+        // 初期化処理
+        window.addEventListener("DOMContentLoaded", () => {
+            const savedTasks = localStorage.getItem(STORAGE_KEY_TASKS);
+            if (savedTasks) {
+                try { tasks = JSON.parse(savedTasks); } catch (e) {}
+            }
+            if (!tasks || tasks.length === 0) {
+                tasks = ["漢字ドリル", "計算プリント"];
+            }
+            currentTask = tasks[0];
+
+            renderTaskSelect();
+            loadCurrentTaskData();
+        });
+
+        // 宿題セレクトボックスの描画
+        function renderTaskSelect() {
+            const select = document.getElementById("task-select");
+            select.innerHTML = "";
+            tasks.forEach(task => {
+                const opt = document.createElement("option");
+                opt.value = task;
+                opt.textContent = `📋 ${task}`;
+                if (task === currentTask) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        // 宿題の追加
+        function addNewTask() {
+            const newTaskName = prompt("新しい宿題の名称を入力してください（例: 英語ワーク）:");
+            if (newTaskName && newTaskName.trim() !== "") {
+                const trimmed = newTaskName.trim();
+                if (!tasks.includes(trimmed)) {
+                    tasks.push(trimmed);
+                    localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks));
+                }
+                currentTask = trimmed;
+                renderTaskSelect();
+                loadCurrentTaskData();
+            }
+        }
+
+        // 宿題の切替
+        function changeTask() {
+            const select = document.getElementById("task-select");
+            currentTask = select.value;
+            loadCurrentTaskData();
+        }
+
+        // 選択された宿題の提出データを読み込む
+        function loadCurrentTaskData() {
+            submittedSet.clear();
+            historyData = [];
+            const list = document.getElementById("student-list");
+            list.innerHTML = "";
+
+            const saved = localStorage.getItem(STORAGE_PREFIX + currentTask);
+            if (saved) {
+                try {
+                    historyData = JSON.parse(saved);
+                    historyData.forEach(item => {
+                        submittedSet.add(item.id);
+                        const li = document.createElement("li");
+                        li.textContent = `✅ 番号: ${item.id} （${item.time}）`;
+                        list.prepend(li);
+                    });
+                } catch (e) {}
+            }
+            document.getElementById("count").textContent = submittedSet.size;
+            msgArea.textContent = `【${currentTask}】 QRコードをかざしてください`;
+            msgArea.className = "";
+        }
+
+        // データの保存
+        function saveData() {
+            localStorage.setItem(STORAGE_PREFIX + currentTask, JSON.stringify(historyData));
+            localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks));
+        }
+
+        // タブ切り替え
         function switchTab(tabName) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -89,46 +201,7 @@
             }
         }
 
-        function generateQRCode() {
-            const val = document.getElementById("qr-input").value.trim();
-            const outDiv = document.getElementById("qrcode-output");
-            const label = document.getElementById("qr-label");
-
-            if (!val) {
-                alert("番号を入力してください。");
-                return;
-            }
-
-            outDiv.innerHTML = "";
-            new QRCode(outDiv, { text: val, width: 200, height: 200 });
-            label.textContent = `番号: ${val}`;
-        }
-
-        const STORAGE_KEY = "homework_number_data";
-        const submittedSet = new Set();
-        let historyData = [];
-        const msgArea = document.getElementById("scan-message");
-        let isProcessing = false;
-
-        window.addEventListener("DOMContentLoaded", () => {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                try {
-                    historyData = JSON.parse(saved);
-                    const list = document.getElementById("student-list");
-                    historyData.forEach(item => {
-                        submittedSet.add(item.id);
-                        const li = document.createElement("li");
-                        li.textContent = `✅ 番号: ${item.id} （${item.time}）`;
-                        list.prepend(li);
-                    });
-                    document.getElementById("count").textContent = submittedSet.size;
-                } catch (e) {}
-            }
-        });
-
-        function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(historyData)); }
-
+        // ビープ音再生
         function playBeep(freq, duration) {
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -143,6 +216,7 @@
             } catch (e) {}
         }
 
+        // QRスキャン成功時
         function onScanSuccess(decodedText) {
             if (isProcessing) return;
             isProcessing = true;
@@ -150,7 +224,7 @@
 
             const studentId = decodedText.trim();
             if (submittedSet.has(studentId)) {
-                msgArea.textContent = `⚠️ 【重複】番号: ${studentId} は提出済みです。`;
+                msgArea.textContent = `⚠️ 【重複】番号: ${studentId} は提出済みです（${currentTask}）`;
                 msgArea.className = "msg-warn";
                 playBeep(300, 0.3);
                 return;
@@ -161,10 +235,10 @@
             const dateStr = now.toLocaleDateString();
 
             submittedSet.add(studentId);
-            historyData.push({ id: studentId, date: dateStr, time: timeStr });
+            historyData.push({ id: studentId, date: dateStr, time: timeStr, task: currentTask });
             saveData();
 
-            msgArea.textContent = `🎉 番号: ${studentId} の提出を受理しました！`;
+            msgArea.textContent = `🎉 [${currentTask}] 番号: ${studentId} の提出を受理！`;
             msgArea.className = "msg-success";
             playBeep(880, 0.15);
 
@@ -175,32 +249,48 @@
             list.prepend(li);
         }
 
+        // CSV出力
         function exportToCSV() {
-            if (historyData.length === 0) return alert("出力するデータがありません。");
+            if (historyData.length === 0) return alert(`「${currentTask}」の出力するデータがありません。`);
             const escapeCsv = (str) => `"${String(str).replace(/"/g, '""')}"`;
-            let csvContent = "\uFEFF生徒番号,日付,時間\n";
+            let csvContent = "\uFEFF宿題名,生徒番号,日付,時間\n";
             historyData.forEach(row => {
-                csvContent += `${escapeCsv(row.id)},${escapeCsv(row.date)},${escapeCsv(row.time)}\n`;
+                csvContent += `${escapeCsv(row.task || currentTask)},${escapeCsv(row.id)},${escapeCsv(row.date)},${escapeCsv(row.time)}\n`;
             });
             const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = `提出リスト_番号_${new Date().toISOString().slice(0,10)}.csv`;
+            link.download = `提出リスト_${currentTask}_${new Date().toISOString().slice(0,10)}.csv`;
             link.click();
         }
 
-        function resetData() {
-            if (confirm("提出リストを初期化しますか？")) {
+        // 選択中の宿題のデータリセット
+        function resetCurrentData() {
+            if (confirm(`「${currentTask}」の提出リストのみを初期化しますか？`)) {
                 submittedSet.clear();
                 historyData = [];
-                localStorage.removeItem(STORAGE_KEY);
+                localStorage.removeItem(STORAGE_PREFIX + currentTask);
                 document.getElementById("student-list").innerHTML = "";
                 document.getElementById("count").textContent = "0";
-                msgArea.textContent = "QRコードをかざしてください";
+                msgArea.textContent = `【${currentTask}】 QRコードをかざしてください`;
                 msgArea.className = "";
             }
         }
 
+        // QR作成
+        function generateQRCode() {
+            const val = document.getElementById("qr-input").value.trim();
+            const outDiv = document.getElementById("qrcode-output");
+            const label = document.getElementById("qr-label");
+
+            if (!val) return alert("番号を入力してください。");
+
+            outDiv.innerHTML = "";
+            new QRCode(outDiv, { text: val, width: 200, height: 200 });
+            label.textContent = `番号: ${val}`;
+        }
+
+        // カメラ起動
         const html5QrCode = new Html5QrcodeScanner(
             "reader",
             { 
