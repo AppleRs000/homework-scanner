@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宿題提出管理アプリ</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            padding: 20px;
+            background: #f4f4f9;
+            margin: 0;
+        }
+        h2 { color: #333; }
+        #reader {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        #reader button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #reader select {
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        #scan-message {
+            margin: 15px auto;
+            padding: 12px;
+            max-width: 380px;
+            border-radius: 5px;
+            font-weight: bold;
+            min-height: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+        }
+        .msg-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .msg-warn {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        .status-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-export { background: #28a745; color: white; }
+        .btn-reset { background: #dc3545; color: white; }
+        ul {
+            list-style: none;
+            padding: 0;
+            max-height: 300px;
+            overflow-y: auto;
+            text-align: left;
+        }
+        li {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>📚 宿題提出スキャナー</h2>
+    <div id="reader"></div>
+    <div id="scan-message">QRコードをかざしてください</div>
+
+    <div class="status-box">
+        <div class="btn-group">
+            <button class="btn-export" onclick="exportToCSV()">📥 CSV出力</button>
+            <button class="btn-reset" onclick="resetData()">🔄 リセット</button>
+        </div>
+        <h3>提出済みリスト (<span id="count">0</span>名)</h3>
+        <ul id="student-list"></ul>
+    </div>
+
+    <script>
+        const STORAGE_KEY = "homework_submission_data";
+        const submittedSet = new Set();
+        let historyData = [];
+        const msgArea = document.getElementById("scan-message");
+        let isProcessing = false;
+
+        // 起動時にLocalStorageからデータを復元
+        window.addEventListener("DOMContentLoaded", () => {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    historyData = JSON.parse(saved);
+                    const list = document.getElementById("student-list");
+                    
+                    // 保存されているデータを画面に反映
+                    historyData.forEach(item => {
+                        submittedSet.add(item.name);
+                        const li = document.createElement("li");
+                        li.textContent = `✅ ${item.name} （${item.time}）`;
+                        list.prepend(li);
+                    });
+                    document.getElementById("count").textContent = submittedSet.size;
+                } catch (e) {
+                    console.error("データの読み込みに失敗しました", e);
+                }
+            }
+        });
+
+        // データを保存する関数
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(historyData));
+        }
+
+        // Web Audio API による効果音生成
+        function playBeep(freq, duration) {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.frequency.value = freq;
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + duration);
+                osc.stop(ctx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            if (isProcessing) return;
+            isProcessing = true;
+
+            setTimeout(() => {
+                isProcessing = false;
+            }, 1500);
+
+            // 重複チェック
+            if (submittedSet.has(decodedText)) {
+                msgArea.textContent = `⚠️ 【警告】${decodedText} さんは既に提出されています。`;
+                msgArea.className = "msg-warn";
+                playBeep(300, 0.3);
+                return;
+            }
+
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString();
+            const dateStr = now.toLocaleDateString();
+
+            submittedSet.add(decodedText);
+            historyData.push({ name: decodedText, date: dateStr, time: timeStr });
+            
+            // LocalStorageへ保存
+            saveData();
+
+            msgArea.textContent = `🎉 ${decodedText} さんの宿題を受理しました！`;
+            msgArea.className = "msg-success";
+            playBeep(880, 0.15);
+
+            document.getElementById("count").textContent = submittedSet.size;
+
+            const list = document.getElementById("student-list");
+            const li = document.createElement("li");
+            li.textContent = `✅ ${decodedText} （${timeStr}）`;
+            list.prepend(li);
+        }
+
+        // CSV出力機能（BOM付き＆エスケープ処理）
+        function exportToCSV() {
+            if (historyData.length === 0) {
+                alert("出力するデータがありません。");
+                return;
+            }
+
+            const escapeCsv = (str) => `"${String(str).replace(/"/g, '""')}"`;
+            let csvContent = "\uFEFF学籍番号/氏名,日付,時間\n";
+
+            historyData.forEach(row => {
+                csvContent += `${escapeCsv(row.name)},${escapeCsv(row.date)},${escapeCsv(row.time)}\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `宿題提出リスト_${new Date().toISOString().slice(0,10)}.csv`;
+            link.click();
+        }
+
+        // リセット機能（ストレージの消去含む）
+        function resetData() {
+            if (confirm("提出リストを初期化しますか？（保存されたデータも消去されます）")) {
+                submittedSet.clear();
+                historyData = [];
+                localStorage.removeItem(STORAGE_KEY);
+                document.getElementById("student-list").innerHTML = "";
+                document.getElementById("count").textContent = "0";
+                msgArea.textContent = "QRコードをかざしてください";
+                msgArea.className = "";
+            }
+        }
+
+        // スキャナーの初期化
+        const html5QrCode = new Html5QrcodeScanner(
+            "reader",
+            { 
+                fps: 10, 
+                qrbox: function(viewfinderWidth, viewfinderHeight) {
+                    const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                    const qrboxSize = Math.floor(minEdge * 0.65);
+                    return { width: qrboxSize, height: qrboxSize };
+                },
+                rememberLastUsedCamera: true
+            },
+            false
+        );
+        html5QrCode.render(onScanSuccess);
+    </script>
+</body>
+</html>
