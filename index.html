@@ -32,7 +32,6 @@
         ul { list-style: none; padding: 0; max-height: 250px; overflow-y: auto; text-align: left; }
         li { padding: 10px; border-bottom: 1px solid #ddd; font-size: 0.95rem; }
 
-        /* QR作成スタイル */
         .qr-gen-box { background: white; padding: 20px; border-radius: 8px; max-width: 400px; margin: 0 auto; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .input-group { margin-bottom: 15px; text-align: left; }
         .input-group label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
@@ -44,13 +43,11 @@
 
     <h2>📚 宿題提出スキャナー</h2>
 
-    <!-- タブ切り替えボタン -->
     <div class="tab-group">
         <button class="tab-btn active" onclick="switchTab('scan')">📷 スキャン</button>
         <button class="tab-btn" onclick="switchTab('generate')">🔲 QR作成</button>
     </div>
 
-    <!-- 1. スキャンエリア -->
     <div id="tab-scan" class="tab-content active">
         <div id="reader"></div>
         <div id="scan-message">QRコードをかざしてください</div>
@@ -65,7 +62,6 @@
         </div>
     </div>
 
-    <!-- 2. QR作成エリア -->
     <div id="tab-generate" class="tab-content">
         <div class="qr-gen-box">
             <h3>生徒番号用 QR作成</h3>
@@ -87,7 +83,6 @@
             });
         }
 
-        // タブ切り替え関数
         function switchTab(tabName) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -101,8 +96,6 @@
             }
         }
 
-        // QRコード生成処理
-        let qrcodeObj = null;
         function generateQRCode() {
             const val = document.getElementById("qr-input").value.trim();
             const outDiv = document.getElementById("qrcode-output");
@@ -114,15 +107,10 @@
             }
 
             outDiv.innerHTML = "";
-            qrcodeObj = new QRCode(outDiv, {
-                text: val,
-                width: 200,
-                height: 200
-            });
+            new QRCode(outDiv, { text: val, width: 200, height: 200 });
             label.textContent = `番号: ${val}`;
         }
 
-        // スキャナー処理（既存機能）
         const STORAGE_KEY = "homework_number_data";
         const submittedSet = new Set();
         let historyData = [];
