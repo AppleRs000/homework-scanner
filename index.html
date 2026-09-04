@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>宿題提出管理アプリ</title>
+    <title>宿題提出管理（番号管理）</title>
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIuWuvkXpoYzmjJDlh7rmrqfmnpEiLAogICJzaG9ydF9uYW1lIjogIuWuvkXpoY3ml6YiLAogICJzdGFydF91cmwiOiAiLi9pbmRleC5odG1sIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjZjRmNGY5IiwKICAidGhlbWVfY29sb3IiOiAiIzAwN2JmZiIKfQ==">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         body {
@@ -98,7 +99,7 @@
 </head>
 <body>
 
-    <h2>📚 宿題提出スキャナー</h2>
+    <h2>📚 宿題提出スキャナー (番号管理)</h2>
     <div id="reader"></div>
     <div id="scan-message">QRコードをかざしてください</div>
 
@@ -112,13 +113,24 @@
     </div>
 
     <script>
-        const STORAGE_KEY = "homework_submission_data";
+        // PWA (Service Worker) の登録
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').then(() => {
+                    console.log('オフライン対応完了');
+                }).catch((err) => {
+                    console.error('Service Worker登録失敗:', err);
+                });
+            });
+        }
+
+        const STORAGE_KEY = "homework_number_data";
         const submittedSet = new Set();
         let historyData = [];
         const msgArea = document.getElementById("scan-message");
         let isProcessing = false;
 
-        // 起動時にLocalStorageからデータを復元
+        // 起動時にLocalStorageから復元
         window.addEventListener("DOMContentLoaded", () => {
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
@@ -126,26 +138,23 @@
                     historyData = JSON.parse(saved);
                     const list = document.getElementById("student-list");
                     
-                    // 保存されているデータを画面に反映
                     historyData.forEach(item => {
-                        submittedSet.add(item.name);
+                        submittedSet.add(item.id);
                         const li = document.createElement("li");
-                        li.textContent = `✅ ${item.name} （${item.time}）`;
+                        li.textContent = `✅ 番号: ${item.id} （${item.time}）`;
                         list.prepend(li);
                     });
                     document.getElementById("count").textContent = submittedSet.size;
                 } catch (e) {
-                    console.error("データの読み込みに失敗しました", e);
+                    console.error("データ読み込み失敗", e);
                 }
             }
         });
 
-        // データを保存する関数
         function saveData() {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(historyData));
         }
 
-        // Web Audio API による効果音生成
         function playBeep(freq, duration) {
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -164,13 +173,13 @@
             if (isProcessing) return;
             isProcessing = true;
 
-            setTimeout(() => {
-                isProcessing = false;
-            }, 1500);
+            setTimeout(() => { isProcessing = false; }, 1500);
 
-            // 重複チェック
-            if (submittedSet.has(decodedText)) {
-                msgArea.textContent = `⚠️ 【警告】${decodedText} さんは既に提出されています。`;
+            // 番号のみを抽出・トリム
+            const studentId = decodedText.trim();
+
+            if (submittedSet.has(studentId)) {
+                msgArea.textContent = `⚠️ 【重複】番号: ${studentId} は提出済みです。`;
                 msgArea.className = "msg-warn";
                 playBeep(300, 0.3);
                 return;
@@ -180,13 +189,12 @@
             const timeStr = now.toLocaleTimeString();
             const dateStr = now.toLocaleDateString();
 
-            submittedSet.add(decodedText);
-            historyData.push({ name: decodedText, date: dateStr, time: timeStr });
+            submittedSet.add(studentId);
+            historyData.push({ id: studentId, date: dateStr, time: timeStr });
             
-            // LocalStorageへ保存
             saveData();
 
-            msgArea.textContent = `🎉 ${decodedText} さんの宿題を受理しました！`;
+            msgArea.textContent = `🎉 番号: ${studentId} の提出を受理しました！`;
             msgArea.className = "msg-success";
             playBeep(880, 0.15);
 
@@ -194,11 +202,10 @@
 
             const list = document.getElementById("student-list");
             const li = document.createElement("li");
-            li.textContent = `✅ ${decodedText} （${timeStr}）`;
+            li.textContent = `✅ 番号: ${studentId} （${timeStr}）`;
             list.prepend(li);
         }
 
-        // CSV出力機能（BOM付き＆エスケープ処理）
         function exportToCSV() {
             if (historyData.length === 0) {
                 alert("出力するデータがありません。");
@@ -206,22 +213,21 @@
             }
 
             const escapeCsv = (str) => `"${String(str).replace(/"/g, '""')}"`;
-            let csvContent = "\uFEFF学籍番号/氏名,日付,時間\n";
+            let csvContent = "\uFEFF生徒番号,日付,時間\n";
 
             historyData.forEach(row => {
-                csvContent += `${escapeCsv(row.name)},${escapeCsv(row.date)},${escapeCsv(row.time)}\n`;
+                csvContent += `${escapeCsv(row.id)},${escapeCsv(row.date)},${escapeCsv(row.time)}\n`;
             });
 
             const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = `宿題提出リスト_${new Date().toISOString().slice(0,10)}.csv`;
+            link.download = `提出リスト_番号_${new Date().toISOString().slice(0,10)}.csv`;
             link.click();
         }
 
-        // リセット機能（ストレージの消去含む）
         function resetData() {
-            if (confirm("提出リストを初期化しますか？（保存されたデータも消去されます）")) {
+            if (confirm("提出リストを初期化しますか？")) {
                 submittedSet.clear();
                 historyData = [];
                 localStorage.removeItem(STORAGE_KEY);
@@ -232,7 +238,6 @@
             }
         }
 
-        // スキャナーの初期化
         const html5QrCode = new Html5QrcodeScanner(
             "reader",
             { 
