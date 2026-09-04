@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>宿題提出スキャナー</title>
+
+    <!-- iOS (iPhone / iPad) 用のホーム画面アイコン -->
+    <link rel="apple-touch-icon" sizes="180x180" href="app-icon.png?v=2">
+
+    <!-- Android / PC などの標準ファビコン設定 -->
+    <link rel="icon" type="image/png" sizes="32x32" href="app-icon.png?v=2">
+    <link rel="icon" type="image/png" sizes="16x16" href="app-icon.png?v=2">
+
+    <!-- Web App Manifest ファイルの読み込み -->
+    <link rel="manifest" href="site.webmanifest?v=2">
+
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
@@ -55,16 +66,6 @@
         table.stats-table th, table.stats-table td { border: 1px solid #ddd; padding: 6px; text-align: center; }
         table.stats-table th { background: #f8f9fa; }
     </style>
-    <!-- iOS (iPhone / iPad) 用のホーム画面アイコン -->
-<link rel="apple-touch-icon" sizes="180x180" href="app-icon.png">
-
-<!-- Android / PC などの標準ファビコン設定 -->
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-
-<!-- Web App Manifest ファイルの読み込み -->
-<link rel="manifest" href="site.webmanifest">
-
 </head>
 <body>
 
@@ -303,7 +304,6 @@
             document.getElementById("display-class-size").textContent = classSize;
             document.getElementById("count").textContent = submittedSet.size;
             
-            // 提出率計算: 提出者数 / (クラス人数 - 欠席者数)
             const targetSize = Math.max(1, classSize - absentSet.size);
             const rate = Math.min(100, Math.round((submittedSet.size / targetSize) * 100));
             document.getElementById("current-rate").textContent = rate;
@@ -315,7 +315,6 @@
             }
         }
 
-        // 欠席登録ダイアログ
         function registerAbsent() {
             if (!currentTaskId) return alert("宿題を選択してください。");
             const num = prompt("欠席する生徒の番号を入力してください（例: 05）:");
@@ -363,21 +362,18 @@
             }
         }
 
-        // 全宿題を通した累積提出率・未提出回数の計算
         function calculateTotalStats() {
             const tbody = document.getElementById("stats-table-body");
             tbody.innerHTML = "";
 
-            let studentMap = {}; // { "01": { submitted: 0, absent: 0, totalTasks: 0 } }
+            let studentMap = {};
             let totalTaskCount = tasks.length;
 
-            // クラス人数分のデータ初期化
             for (let i = 1; i <= classSize; i++) {
                 const idStr = i < 10 ? `0${i}` : `${i}`;
                 studentMap[idStr] = { submitted: 0, absent: 0 };
             }
 
-            // 全宿題のデータを集計
             tasks.forEach(task => {
                 const saved = localStorage.getItem(STORAGE_PREFIX + task.id);
                 if (saved) {
@@ -395,7 +391,6 @@
                 }
             });
 
-            // テーブルに描画
             Object.keys(studentMap).sort().forEach(id => {
                 const stat = studentMap[id];
                 const unsubmitted = Math.max(0, totalTaskCount - stat.submitted - stat.absent);
