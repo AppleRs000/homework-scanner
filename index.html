@@ -6,138 +6,135 @@
     <title>宿題提出管理（番号管理）</title>
     <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIuWuvkXpoYzmjJDlh7rmrqfmnpEiLAogICJzaG9ydF9uYW1lIjogIuWuvkXpoY3ml6YiLAogICJzdGFydF91cmwiOiAiLi9pbmRleC5odG1sIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjZjRmNGY5IiwKICAidGhlbWVfY29sb3IiOiAiIzAwN2JmZiIKfQ==">
     <script src="./html5-qrcode.min.js"></script>
+    <script src="./qrcode.min.js"></script>
     <style>
-        body {
-            font-family: sans-serif;
-            text-align: center;
-            padding: 20px;
-            background: #f4f4f9;
-            margin: 0;
-        }
-        h2 { color: #333; }
-        #reader {
-            width: 100%;
-            max-width: 400px;
-            margin: 0 auto;
-            border-radius: 8px;
-            overflow: hidden;
-            background: #fff;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        #reader button {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            margin: 5px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        #reader select {
-            padding: 6px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-        }
-        #scan-message {
-            margin: 15px auto;
-            padding: 12px;
-            max-width: 380px;
-            border-radius: 5px;
-            font-weight: bold;
-            min-height: 24px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            transition: all 0.3s;
-        }
-        .msg-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .msg-warn {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeeba;
-        }
-        .status-box {
-            margin-top: 20px;
-            padding: 15px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 15px;
-        }
-        button {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-        }
+        body { font-family: sans-serif; text-align: center; padding: 15px; background: #f4f4f9; margin: 0; }
+        h2 { color: #333; margin-bottom: 10px; }
+        .tab-group { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
+        .tab-btn { padding: 10px 20px; border: none; border-radius: 20px; background: #ccc; font-weight: bold; cursor: pointer; }
+        .tab-btn.active { background: #007bff; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        #reader { width: 100%; max-width: 400px; margin: 0 auto; border-radius: 8px; overflow: hidden; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        #reader button { background: #007bff; color: white; border: none; padding: 6px 12px; margin: 5px; border-radius: 4px; cursor: pointer; }
+        #reader select { padding: 6px; border-radius: 4px; border: 1px solid #ccc; }
+        
+        #scan-message { margin: 15px auto; padding: 12px; max-width: 380px; border-radius: 5px; font-weight: bold; min-height: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .msg-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .msg-warn { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+
+        .status-box { margin-top: 15px; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
+        .btn-group { display: flex; gap: 10px; justify-content: center; margin-bottom: 15px; }
+        button.action-btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
         .btn-export { background: #28a745; color: white; }
         .btn-reset { background: #dc3545; color: white; }
-        ul {
-            list-style: none;
-            padding: 0;
-            max-height: 300px;
-            overflow-y: auto;
-            text-align: left;
-        }
-        li {
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-            font-size: 0.95rem;
-        }
+        ul { list-style: none; padding: 0; max-height: 250px; overflow-y: auto; text-align: left; }
+        li { padding: 10px; border-bottom: 1px solid #ddd; font-size: 0.95rem; }
+
+        /* QR作成スタイル */
+        .qr-gen-box { background: white; padding: 20px; border-radius: 8px; max-width: 400px; margin: 0 auto; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
+        .input-group input { width: 93%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+        #qrcode-output { margin-top: 20px; display: flex; justify-content: center; }
     </style>
 </head>
 <body>
 
-    <h2>📚 宿題提出スキャナー (番号管理)</h2>
-    <div id="reader"></div>
-    <div id="scan-message">QRコードをかざしてください</div>
+    <h2>📚 宿題提出スキャナー</h2>
 
-    <div class="status-box">
-        <div class="btn-group">
-            <button class="btn-export" onclick="exportToCSV()">📥 CSV出力</button>
-            <button class="btn-reset" onclick="resetData()">🔄 リセット</button>
+    <!-- タブ切り替えボタン -->
+    <div class="tab-group">
+        <button class="tab-btn active" onclick="switchTab('scan')">📷 スキャン</button>
+        <button class="tab-btn" onclick="switchTab('generate')">🔲 QR作成</button>
+    </div>
+
+    <!-- 1. スキャンエリア -->
+    <div id="tab-scan" class="tab-content active">
+        <div id="reader"></div>
+        <div id="scan-message">QRコードをかざしてください</div>
+
+        <div class="status-box">
+            <div class="btn-group">
+                <button class="action-btn btn-export" onclick="exportToCSV()">📥 CSV出力</button>
+                <button class="action-btn btn-reset" onclick="resetData()">🔄 リセット</button>
+            </div>
+            <h3>提出済みリスト (<span id="count">0</span>名)</h3>
+            <ul id="student-list"></ul>
         </div>
-        <h3>提出済みリスト (<span id="count">0</span>名)</h3>
-        <ul id="student-list"></ul>
+    </div>
+
+    <!-- 2. QR作成エリア -->
+    <div id="tab-generate" class="tab-content">
+        <div class="qr-gen-box">
+            <h3>生徒番号用 QR作成</h3>
+            <div class="input-group">
+                <label>生徒番号（例: 01, 105 など）</label>
+                <input type="text" id="qr-input" placeholder="番号を入力">
+            </div>
+            <button class="action-btn btn-export" style="width:100%;" onclick="generateQRCode()">QRコードを生成</button>
+
+            <div id="qrcode-output"></div>
+            <p id="qr-label" style="font-weight:bold; margin-top:10px;"></p>
+        </div>
     </div>
 
     <script>
-        // PWA (Service Worker) の登録
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').then(() => {
-                    console.log('オフライン対応完了');
-                }).catch((err) => {
-                    console.error('Service Worker登録失敗:', err);
-                });
+                navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
             });
         }
 
+        // タブ切り替え関数
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            if (tabName === 'scan') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('tab-scan').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('tab-generate').classList.add('active');
+            }
+        }
+
+        // QRコード生成処理
+        let qrcodeObj = null;
+        function generateQRCode() {
+            const val = document.getElementById("qr-input").value.trim();
+            const outDiv = document.getElementById("qrcode-output");
+            const label = document.getElementById("qr-label");
+
+            if (!val) {
+                alert("番号を入力してください。");
+                return;
+            }
+
+            outDiv.innerHTML = "";
+            qrcodeObj = new QRCode(outDiv, {
+                text: val,
+                width: 200,
+                height: 200
+            });
+            label.textContent = `番号: ${val}`;
+        }
+
+        // スキャナー処理（既存機能）
         const STORAGE_KEY = "homework_number_data";
         const submittedSet = new Set();
         let historyData = [];
         const msgArea = document.getElementById("scan-message");
         let isProcessing = false;
 
-        // 起動時にLocalStorageから復元
         window.addEventListener("DOMContentLoaded", () => {
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
                 try {
                     historyData = JSON.parse(saved);
                     const list = document.getElementById("student-list");
-                    
                     historyData.forEach(item => {
                         submittedSet.add(item.id);
                         const li = document.createElement("li");
@@ -145,15 +142,11 @@
                         list.prepend(li);
                     });
                     document.getElementById("count").textContent = submittedSet.size;
-                } catch (e) {
-                    console.error("データ読み込み失敗", e);
-                }
+                } catch (e) {}
             }
         });
 
-        function saveData() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(historyData));
-        }
+        function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(historyData)); }
 
         function playBeep(freq, duration) {
             try {
@@ -169,15 +162,12 @@
             } catch (e) {}
         }
 
-        function onScanSuccess(decodedText, decodedResult) {
+        function onScanSuccess(decodedText) {
             if (isProcessing) return;
             isProcessing = true;
-
             setTimeout(() => { isProcessing = false; }, 1500);
 
-            // 番号のみを抽出・トリム
             const studentId = decodedText.trim();
-
             if (submittedSet.has(studentId)) {
                 msgArea.textContent = `⚠️ 【重複】番号: ${studentId} は提出済みです。`;
                 msgArea.className = "msg-warn";
@@ -191,7 +181,6 @@
 
             submittedSet.add(studentId);
             historyData.push({ id: studentId, date: dateStr, time: timeStr });
-            
             saveData();
 
             msgArea.textContent = `🎉 番号: ${studentId} の提出を受理しました！`;
@@ -199,7 +188,6 @@
             playBeep(880, 0.15);
 
             document.getElementById("count").textContent = submittedSet.size;
-
             const list = document.getElementById("student-list");
             const li = document.createElement("li");
             li.textContent = `✅ 番号: ${studentId} （${timeStr}）`;
@@ -207,18 +195,12 @@
         }
 
         function exportToCSV() {
-            if (historyData.length === 0) {
-                alert("出力するデータがありません。");
-                return;
-            }
-
+            if (historyData.length === 0) return alert("出力するデータがありません。");
             const escapeCsv = (str) => `"${String(str).replace(/"/g, '""')}"`;
             let csvContent = "\uFEFF生徒番号,日付,時間\n";
-
             historyData.forEach(row => {
                 csvContent += `${escapeCsv(row.id)},${escapeCsv(row.date)},${escapeCsv(row.time)}\n`;
             });
-
             const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
@@ -242,10 +224,9 @@
             "reader",
             { 
                 fps: 10, 
-                qrbox: function(viewfinderWidth, viewfinderHeight) {
-                    const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-                    const qrboxSize = Math.floor(minEdge * 0.65);
-                    return { width: qrboxSize, height: qrboxSize };
+                qrbox: (w, h) => {
+                    const min = Math.min(w, h);
+                    return { width: Math.floor(min * 0.65), height: Math.floor(min * 0.65) };
                 },
                 rememberLastUsedCamera: true
             },
