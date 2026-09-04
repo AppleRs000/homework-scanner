@@ -17,10 +17,11 @@
         .btn-add { background: #17a2b8; }
         .btn-delete { background: #dc3545; }
 
-        .filter-group { display: flex; gap: 10px; justify-content: center; align-items: center; font-size: 0.85rem; color: #555; background: #e9ecef; padding: 6px; border-radius: 5px; }
+        .class-settings { display: flex; gap: 10px; justify-content: center; align-items: center; font-size: 0.85rem; color: #333; background: #e9ecef; padding: 6px; border-radius: 5px; margin-top: 5px; }
+        .class-settings input { width: 50px; padding: 4px; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
 
-        .tab-group { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
-        .tab-btn { padding: 10px 20px; border: none; border-radius: 20px; background: #ccc; font-weight: bold; cursor: pointer; }
+        .tab-group { display: flex; justify-content: center; gap: 5px; margin-bottom: 15px; flex-wrap: wrap; }
+        .tab-btn { padding: 8px 14px; border: none; border-radius: 20px; background: #ccc; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
         .tab-btn.active { background: #007bff; color: white; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
@@ -33,20 +34,26 @@
         .msg-warn { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
 
         .status-box { margin-top: 15px; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
-        .btn-group { display: flex; gap: 10px; justify-content: center; margin-bottom: 15px; }
-        button.action-btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .rate-badge { font-size: 1.2rem; font-weight: bold; color: #007bff; margin: 5px 0; }
+        
+        .btn-group { display: flex; gap: 8px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap; }
+        button.action-btn { padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.85rem; }
         .btn-export { background: #28a745; color: white; }
+        .btn-absent { background: #ffc107; color: #333; }
         .btn-reset { background: #dc3545; color: white; }
+        
         ul { list-style: none; padding: 0; max-height: 250px; overflow-y: auto; text-align: left; }
-        li { padding: 10px; border-bottom: 1px solid #ddd; font-size: 0.95rem; }
+        li { padding: 8px; border-bottom: 1px solid #ddd; font-size: 0.9rem; display: flex; justify-content: space-between; }
 
-        .qr-gen-box { background: white; padding: 20px; border-radius: 8px; max-width: 400px; margin: 0 auto; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .input-group { margin-bottom: 15px; text-align: left; }
+        .qr-gen-box, .stats-box { background: white; padding: 15px; border-radius: 8px; max-width: 400px; margin: 0 auto; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: left; }
+        .input-group { margin-bottom: 15px; }
         .input-group label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
-        .input-group input, .input-group select { width: 95%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95rem; }
-        .weekday-checkboxes { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 5px; }
-        .weekday-checkboxes label { font-weight: normal; font-size: 0.85rem; }
+        .input-group input { width: 90%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
         #qrcode-output { margin-top: 20px; display: flex; justify-content: center; }
+        
+        table.stats-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+        table.stats-table th, table.stats-table td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+        table.stats-table th { background: #f8f9fa; }
     </style>
 </head>
 <body>
@@ -59,13 +66,17 @@
             <button class="btn-task-action btn-add" onclick="addNewTask()">＋ 追加</button>
             <button class="btn-task-action btn-delete" onclick="deleteCurrentTask()">🗑️ 削除</button>
         </div>
-        <div class="filter-group">
-            <label><input type="checkbox" id="filter-today" onchange="renderTaskSelect()" checked> 今日の対象宿題のみ表示</label>
+        <div class="class-settings">
+            <label>👥 クラス人数: </label>
+            <input type="number" id="class-size" value="30" min="1" onchange="saveClassSize()"> 人
+            <label style="margin-left:10px;"><input type="checkbox" id="filter-today" onchange="renderTaskSelect()" checked> 今日のみ</label>
         </div>
     </div>
 
     <div class="tab-group">
         <button class="tab-btn active" onclick="switchTab('scan')">📷 スキャン</button>
+
+        <button class="tab-btn" onclick="switchTab('stats')">📊 提出率・集計</button>
         <button class="tab-btn" onclick="switchTab('generate')">🔲 QR作成</button>
     </div>
 
@@ -74,12 +85,33 @@
         <div id="scan-message">QRコードをかざしてください</div>
 
         <div class="status-box">
+            <div class="rate-badge">提出率: <span id="current-rate">0</span>%</div>
             <div class="btn-group">
-                <button class="action-btn btn-export" onclick="exportToCSV()">📥 CSV出力</button>
+                <button class="action-btn btn-absent" onclick="registerAbsent()">🤒 欠席登録</button>
+                <button class="action-btn btn-export" onclick="exportToCSV()">📥 CSV</button>
                 <button class="action-btn btn-reset" onclick="resetCurrentData()">🔄 リセット</button>
             </div>
-            <h3>提出済みリスト (<span id="count">0</span>名)</h3>
+            <h3>記録リスト (<span id="count">0</span> / <span id="display-class-size">30</span>名)</h3>
             <ul id="student-list"></ul>
+        </div>
+    </div>
+
+    <div id="tab-stats" class="tab-content">
+        <div class="stats-box">
+            <h3>📊 全体の累積提出データ</h3>
+            <p style="font-size:0.85rem; color:#666;">※過去の全宿題の合計未提出回数と平均提出率です。</p>
+            <div id="total-stats-summary" style="font-weight:bold; margin-bottom:10px;"></div>
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th>生徒番号</th>
+                        <th>提出済</th>
+                        <th>欠席</th>
+                        <th>未提出</th>
+                    </tr>
+                </thead>
+                <tbody id="stats-table-body"></tbody>
+            </table>
         </div>
     </div>
 
@@ -93,27 +125,33 @@
             <button class="action-btn btn-export" style="width:100%;" onclick="generateQRCode()">QRコードを生成</button>
 
             <div id="qrcode-output"></div>
-            <p id="qr-label" style="font-weight:bold; margin-top:10px;"></p>
+            <p id="qr-label" style="font-weight:bold; margin-top:10px; text-align:center;"></p>
         </div>
     </div>
 
     <script>
         const STORAGE_KEY_TASKS_V2 = "homework_task_list_v2";
         const STORAGE_PREFIX = "homework_data_";
+        const STORAGE_CLASS_SIZE = "homework_class_size";
 
-        // 初期データ（構造化データ）
         let tasks = [
             { id: "1", name: "漢字ドリル", repeatType: "everyday", days: [], date: "" },
             { id: "2", name: "計算プリント", repeatType: "everyday", days: [], date: "" }
         ];
         let currentTaskId = "";
         let submittedSet = new Set();
+        let absentSet = new Set();
         let historyData = [];
+        let classSize = 30;
         let isProcessing = false;
 
         const msgArea = document.getElementById("scan-message");
 
         window.addEventListener("DOMContentLoaded", () => {
+            const savedSize = localStorage.getItem(STORAGE_CLASS_SIZE);
+            if (savedSize) classSize = parseInt(savedSize);
+            document.getElementById("class-size").value = classSize;
+
             const savedTasks = localStorage.getItem(STORAGE_KEY_TASKS_V2);
             if (savedTasks) {
                 try { tasks = JSON.parse(savedTasks); } catch (e) {}
@@ -124,19 +162,20 @@
             loadCurrentTaskData();
         });
 
-        // 本日の宿題かチェックする判定処理
+        function saveClassSize() {
+            classSize = parseInt(document.getElementById("class-size").value) || 30;
+            localStorage.setItem(STORAGE_CLASS_SIZE, classSize);
+            updateRateDisplay();
+        }
+
         function isTaskActiveToday(task) {
             const now = new Date();
-            const todayDay = now.getDay(); // 0:日, 1:月...
-            const todayDate = now.getDate(); // 1~31日
-
             if (task.repeatType === "everyday") return true;
-            if (task.repeatType === "weekly" && task.days && task.days.includes(todayDay)) return true;
-            if (task.repeatType === "monthly" && parseInt(task.date) === todayDate) return true;
+            if (task.repeatType === "weekly" && task.days && task.days.includes(now.getDay())) return true;
+            if (task.repeatType === "monthly" && parseInt(task.date) === now.getDate()) return true;
             return false;
         }
 
-        // 宿題ドロップダウンの描画
         function renderTaskSelect() {
             const select = document.getElementById("task-select");
             const filterToday = document.getElementById("filter-today").checked;
@@ -145,77 +184,55 @@
             const displayTasks = filterToday ? tasks.filter(isTaskActiveToday) : tasks;
 
             if (displayTasks.length === 0) {
-                const opt = document.createElement("option");
-                opt.textContent = "（本日の宿題はありません）";
-                opt.value = "";
-                select.appendChild(opt);
+                select.innerHTML = '<option value="">（本日の宿題なし）</option>';
                 currentTaskId = "";
                 loadCurrentTaskData();
                 return;
             }
 
-            let foundCurrent = false;
+            let found = false;
             displayTasks.forEach(task => {
                 const opt = document.createElement("option");
                 opt.value = task.id;
                 opt.textContent = `📋 ${task.name}`;
-                if (task.id === currentTaskId) {
-                    opt.selected = true;
-                    foundCurrent = true;
-                }
+                if (task.id === currentTaskId) { opt.selected = true; found = true; }
                 select.appendChild(opt);
             });
 
-            if (!foundCurrent && displayTasks.length > 0) {
-                currentTaskId = displayTasks[0].id;
-            }
+            if (!found && displayTasks.length > 0) currentTaskId = displayTasks[0].id;
             loadCurrentTaskData();
         }
 
-        // 宿題の追加（ダイアログ形式）
         function addNewTask() {
-            const name = prompt("新しい宿題の名称を入力してください（例: 英語ワーク）:");
-            if (!name || name.trim() === "") return;
+            const name = prompt("新しい宿題の名称:");
+            if (!name || !name.trim()) return;
 
-            const typeMode = prompt("リピート設定を選んでください:\n1: 毎日\n2: 曜日指定 (例: 月,水,金)\n3: 毎月の日付指定 (例: 15日)", "1");
-            
-            let repeatType = "everyday";
-            let days = [];
-            let dateVal = "";
+            const typeMode = prompt("リピート設定:\n1: 毎日\n2: 曜日指定 (例: 1,3,5)\n3: 毎月日付 (例: 10)", "1");
+            let repeatType = "everyday", days = [], dateVal = "";
 
             if (typeMode === "2") {
                 repeatType = "weekly";
-                const dayStr = prompt("曜日を数字でカンマ区切りで入力してください:\n0:日, 1:月, 2:火, 3:水, 4:木, 5:金, 6:土\n(例: 月・水・金なら 1,3,5)", "1,3,5");
+                const dayStr = prompt("曜日 (0:日, 1:月, 2:火, 3:水, 4:木, 5:金, 6:土):", "1,3,5");
                 if (dayStr) days = dayStr.split(",").map(n => parseInt(n.trim())).filter(n => !isNaN(n));
             } else if (typeMode === "3") {
                 repeatType = "monthly";
-                dateVal = prompt("毎月何日に提出ですか？(1〜31の数字を入力)", "10");
+                dateVal = prompt("毎月何日？ (1~31)", "10");
             }
 
-            const newTask = {
-                id: Date.now().toString(),
-                name: name.trim(),
-                repeatType: repeatType,
-                days: days,
-                date: dateVal
-            };
-
+            const newTask = { id: Date.now().toString(), name: name.trim(), repeatType, days, date: dateVal };
             tasks.push(newTask);
             currentTaskId = newTask.id;
-            saveTasks();
+            localStorage.setItem(STORAGE_KEY_TASKS_V2, JSON.stringify(tasks));
             renderTaskSelect();
         }
 
-        // 宿題の削除
         function deleteCurrentTask() {
-            if (!currentTaskId) return alert("削除する宿題が選択されていません。");
+            if (!currentTaskId) return alert("宿題が選択されていません。");
             const taskObj = tasks.find(t => t.id === currentTaskId);
-            if (!taskObj) return;
-
-            if (confirm(`「${taskObj.name}」を削除しますか？\n（提出データもあわせて削除されます）`)) {
+            if (confirm(`「${taskObj.name}」を削除しますか？`)) {
                 tasks = tasks.filter(t => t.id !== currentTaskId);
                 localStorage.removeItem(STORAGE_PREFIX + currentTaskId);
-                saveTasks();
+                localStorage.setItem(STORAGE_KEY_TASKS_V2, JSON.stringify(tasks));
                 currentTaskId = tasks.length > 0 ? tasks[0].id : "";
                 renderTaskSelect();
             }
@@ -228,6 +245,7 @@
 
         function loadCurrentTaskData() {
             submittedSet.clear();
+            absentSet.clear();
             historyData = [];
             const list = document.getElementById("student-list");
             list.innerHTML = "";
@@ -236,6 +254,7 @@
             if (!taskObj) {
                 document.getElementById("count").textContent = "0";
                 msgArea.textContent = "宿題が選択されていません";
+                updateRateDisplay();
                 return;
             }
 
@@ -244,26 +263,77 @@
                 try {
                     historyData = JSON.parse(saved);
                     historyData.forEach(item => {
-                        submittedSet.add(item.id);
-                        const li = document.createElement("li");
-                        li.textContent = `✅ 番号: ${item.id} （${item.time}）`;
-                        list.prepend(li);
+                        if (item.status === "absent") {
+                            absentSet.add(item.id);
+                        } else {
+                            submittedSet.add(item.id);
+                        }
+                        renderListItem(item);
                     });
                 } catch (e) {}
             }
-            document.getElementById("count").textContent = submittedSet.size;
+            updateRateDisplay();
             msgArea.textContent = `【${taskObj.name}】 QRコードをかざしてください`;
             msgArea.className = "";
         }
 
-        function saveTasks() {
-            localStorage.setItem(STORAGE_KEY_TASKS_V2, JSON.stringify(tasks));
+        function renderListItem(item) {
+            const list = document.getElementById("student-list");
+            const li = document.createElement("li");
+            if (item.status === "absent") {
+                li.innerHTML = `<span>🤒 番号: ${item.id} （欠席）</span><small>${item.time}</small>`;
+                li.style.color = "#856404";
+            } else {
+                li.innerHTML = `<span>✅ 番号: ${item.id}</span><small>${item.time}</small>`;
+            }
+            list.prepend(li);
+        }
+
+        function updateRateDisplay() {
+            document.getElementById("display-class-size").textContent = classSize;
+            document.getElementById("count").textContent = submittedSet.size;
+            
+            // 提出率計算: 提出者数 / (クラス人数 - 欠席者数)
+            const targetSize = Math.max(1, classSize - absentSet.size);
+            const rate = Math.min(100, Math.round((submittedSet.size / targetSize) * 100));
+            document.getElementById("current-rate").textContent = rate;
         }
 
         function saveData() {
             if (currentTaskId) {
                 localStorage.setItem(STORAGE_PREFIX + currentTaskId, JSON.stringify(historyData));
             }
+        }
+
+        // 欠席登録ダイアログ
+        function registerAbsent() {
+            if (!currentTaskId) return alert("宿題を選択してください。");
+            const num = prompt("欠席する生徒の番号を入力してください（例: 05）:");
+            if (!num || !num.trim()) return;
+
+            const studentId = num.trim();
+            if (submittedSet.has(studentId)) {
+                alert(`番号: ${studentId} は既に提出済みです。`);
+                return;
+            }
+            if (absentSet.has(studentId)) {
+                alert(`番号: ${studentId} は既に欠席登録されています。`);
+                return;
+            }
+
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString();
+            const dateStr = now.toLocaleDateString();
+
+            absentSet.add(studentId);
+            const item = { id: studentId, date: dateStr, time: timeStr, status: "absent" };
+            historyData.push(item);
+            saveData();
+
+            renderListItem(item);
+            updateRateDisplay();
+            msgArea.textContent = `🤒 番号: ${studentId} を欠席登録しました`;
+            msgArea.className = "msg-warn";
         }
 
         function switchTab(tabName) {
@@ -273,10 +343,64 @@
             if (tabName === 'scan') {
                 document.querySelectorAll('.tab-btn')[0].classList.add('active');
                 document.getElementById('tab-scan').classList.add('active');
-            } else {
+            } else if (tabName === 'stats') {
                 document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('tab-stats').classList.add('active');
+                calculateTotalStats();
+            } else {
+                document.querySelectorAll('.tab-btn')[2].classList.add('active');
                 document.getElementById('tab-generate').classList.add('active');
             }
+        }
+
+        // 全宿題を通した累積提出率・未提出回数の計算
+        function calculateTotalStats() {
+            const tbody = document.getElementById("stats-table-body");
+            tbody.innerHTML = "";
+
+            let studentMap = {}; // { "01": { submitted: 0, absent: 0, totalTasks: 0 } }
+            let totalTaskCount = tasks.length;
+
+            // クラス人数分のデータ初期化
+            for (let i = 1; i <= classSize; i++) {
+                const idStr = i < 10 ? `0${i}` : `${i}`;
+                studentMap[idStr] = { submitted: 0, absent: 0 };
+            }
+
+            // 全宿題のデータを集計
+            tasks.forEach(task => {
+                const saved = localStorage.getItem(STORAGE_PREFIX + task.id);
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        data.forEach(item => {
+                            if (!studentMap[item.id]) studentMap[item.id] = { submitted: 0, absent: 0 };
+                            if (item.status === "absent") {
+                                studentMap[item.id].absent++;
+                            } else {
+                                studentMap[item.id].submitted++;
+                            }
+                        });
+                    } catch (e) {}
+                }
+            });
+
+            // テーブルに描画
+            Object.keys(studentMap).sort().forEach(id => {
+                const stat = studentMap[id];
+                const unsubmitted = Math.max(0, totalTaskCount - stat.submitted - stat.absent);
+                
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td><strong>${id}</strong></td>
+                    <td style="color:#28a745;">${stat.submitted} 回</td>
+                    <td style="color:#ffc107;">${stat.absent} 回</td>
+                    <td style="color:#dc3545; font-weight:bold;">${unsubmitted} 回</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById("total-stats-summary").textContent = `登録宿題数: 全 ${totalTaskCount} 件`;
         }
 
         function playBeep(freq, duration) {
@@ -302,7 +426,7 @@
             const studentId = decodedText.trim();
             
             if (submittedSet.has(studentId)) {
-                msgArea.textContent = `⚠️ 【重複】番号: ${studentId} は提出済み（${taskObj.name}）`;
+                msgArea.textContent = `⚠️ 【重複】番号: ${studentId} は提出済みです`;
                 msgArea.className = "msg-warn";
                 playBeep(300, 0.3);
                 return;
@@ -313,27 +437,26 @@
             const dateStr = now.toLocaleDateString();
 
             submittedSet.add(studentId);
-            historyData.push({ id: studentId, date: dateStr, time: timeStr, task: taskObj.name });
+            const item = { id: studentId, date: dateStr, time: timeStr, status: "submitted" };
+            historyData.push(item);
             saveData();
 
             msgArea.textContent = `🎉 [${taskObj.name}] 番号: ${studentId} の提出を受理！`;
             msgArea.className = "msg-success";
             playBeep(880, 0.15);
 
-            document.getElementById("count").textContent = submittedSet.size;
-            const list = document.getElementById("student-list");
-            const li = document.createElement("li");
-            li.textContent = `✅ 番号: ${studentId} （${timeStr}）`;
-            list.prepend(li);
+            renderListItem(item);
+            updateRateDisplay();
         }
 
         function exportToCSV() {
             const taskObj = tasks.find(t => t.id === currentTaskId);
             if (!taskObj || historyData.length === 0) return alert("出力するデータがありません。");
             const escapeCsv = (str) => `"${String(str).replace(/"/g, '""')}"`;
-            let csvContent = "\uFEFF宿題名,生徒番号,日付,時間\n";
+            let csvContent = "\uFEFF宿題名,生徒番号,状態,日付,時間\n";
             historyData.forEach(row => {
-                csvContent += `${escapeCsv(row.task)},${escapeCsv(row.id)},${escapeCsv(row.date)},${escapeCsv(row.time)}\n`;
+                const statusTxt = row.status === "absent" ? "欠席" : "提出済";
+                csvContent += `${escapeCsv(taskObj.name)},${escapeCsv(row.id)},${escapeCsv(statusTxt)},${escapeCsv(row.date)},${escapeCsv(row.time)}\n`;
             });
             const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
             const link = document.createElement("a");
@@ -345,12 +468,13 @@
         function resetCurrentData() {
             const taskObj = tasks.find(t => t.id === currentTaskId);
             if (!taskObj) return;
-            if (confirm(`「${taskObj.name}」の提出リストを初期化しますか？`)) {
+            if (confirm(`「${taskObj.name}」のデータ（提出・欠席）を初期化しますか？`)) {
                 submittedSet.clear();
+                absentSet.clear();
                 historyData = [];
                 localStorage.removeItem(STORAGE_PREFIX + currentTaskId);
                 document.getElementById("student-list").innerHTML = "";
-                document.getElementById("count").textContent = "0";
+                updateRateDisplay();
                 msgArea.textContent = `【${taskObj.name}】 QRコードをかざしてください`;
                 msgArea.className = "";
             }
