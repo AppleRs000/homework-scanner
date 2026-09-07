@@ -21,7 +21,7 @@
         body { font-family: sans-serif; text-align: center; padding: 10px; background: #f4f4f9; margin: 0; }
         h2 { color: #333; margin: 10px 0; font-size: 1.4rem; }
         
-        .task-manage-box { background: #fff; padding: 10px; border-radius: 8px; max-width: 600px; margin: 0 auto 10px auto; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .task-manage-box { background: #fff; padding: 10px; border-radius: 8px; max-width: 700px; margin: 0 auto 10px auto; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .task-select-group { display: flex; gap: 5px; justify-content: center; align-items: center; margin-bottom: 8px; }
         select.task-select { padding: 8px; border-radius: 5px; border: 1px solid #ccc; font-size: 0.95rem; flex-grow: 1; }
         .btn-task-action { padding: 8px 10px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; color: white; font-size: 0.85rem; }
@@ -37,26 +37,36 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
-        /* --- カメラ画面の最大化スタイル --- */
+        /* --- カメラ画面の完全極大化スタイル --- */
+        #reader-wrapper {
+            width: 100%;
+            max-width: 700px;
+            margin: 0 auto;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
         #reader { 
-            width: 100%; 
-            max-width: 600px; /* 横幅の上限を拡大 */
-            margin: 0 auto; 
-            border-radius: 12px; 
-            overflow: hidden; 
-            background: #000; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15); 
+            width: 100% !important; 
+            border: none !important;
         }
         #reader video {
-            object-fit: cover; /* 画面枠いっぱいに表示 */
+            width: 100% !important;
+            height: auto !important;
+            max-height: 65vh; /* タブレット画面等で縦に伸びすぎない設定 */
+            object-fit: cover !important;
         }
-        #reader button { background: #007bff; color: white; border: none; padding: 8px 16px; margin: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        /* 不要なボタンやUIリンクの非表示 */
+        #reader button, #reader a {
+            display: none !important;
+        }
         
-        #scan-message { margin: 10px auto; padding: 12px; max-width: 580px; border-radius: 6px; font-weight: bold; min-height: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); font-size: 1rem; }
+        #scan-message { margin: 10px auto; padding: 12px; max-width: 680px; border-radius: 6px; font-weight: bold; min-height: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); font-size: 1rem; }
         .msg-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .msg-warn { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
 
-        .status-box { margin-top: 10px; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 580px; margin-left: auto; margin-right: auto; }
+        .status-box { margin-top: 10px; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 680px; margin-left: auto; margin-right: auto; }
         .rate-badge { font-size: 1.3rem; font-weight: bold; color: #007bff; margin: 5px 0; }
         
         .btn-group { display: flex; gap: 8px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap; }
@@ -68,7 +78,7 @@
         ul { list-style: none; padding: 0; max-height: 200px; overflow-y: auto; text-align: left; }
         li { padding: 8px; border-bottom: 1px solid #ddd; font-size: 0.9rem; display: flex; justify-content: space-between; }
 
-        .qr-gen-box, .stats-box { background: white; padding: 15px; border-radius: 8px; max-width: 580px; margin: 0 auto; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: left; }
+        .qr-gen-box, .stats-box { background: white; padding: 15px; border-radius: 8px; max-width: 680px; margin: 0 auto; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: left; }
         .input-group { margin-bottom: 15px; }
         .input-group label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
         .input-group input { width: 90%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
@@ -103,7 +113,9 @@
     </div>
 
     <div id="tab-scan" class="tab-content active">
-        <div id="reader"></div>
+        <div id="reader-wrapper">
+            <div id="reader"></div>
+        </div>
         <div id="scan-message">QRコードをかざしてください</div>
 
         <div class="status-box">
@@ -424,7 +436,6 @@
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
                 
-                // ピピッ と2回鳴らす高音サウンド
                 const playNote = (freq, startTime, duration) => {
                     const osc = ctx.createOscillator();
                     const gain = ctx.createGain();
@@ -438,8 +449,8 @@
                 };
 
                 const now = ctx.currentTime;
-                playNote(1046.5, now, 0.08);       // C6 (高いド)
-                playNote(1318.5, now + 0.09, 0.12); // E6 (高いミ)
+                playNote(1046.5, now, 0.08);       // C6
+                playNote(1318.5, now + 0.09, 0.12); // E6
             } catch (e) {}
         }
 
@@ -458,13 +469,12 @@
             } catch (e) {}
         }
 
-        // 番号の日本語音声読み上げ
         function speakText(text) {
             if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel(); // 前の音声を停止
+                window.speechSynthesis.cancel();
                 const uttr = new SpeechSynthesisUtterance(text);
                 uttr.lang = 'ja-JP';
-                uttr.rate = 1.2; // 少し早めに設定
+                uttr.rate = 1.2;
                 window.speechSynthesis.speak(uttr);
             }
         }
@@ -472,7 +482,7 @@
         function onScanSuccess(decodedText) {
             if (isProcessing || !currentTaskId) return;
             isProcessing = true;
-            setTimeout(() => { isProcessing = false; }, 1800); // 誤認識連打防止
+            setTimeout(() => { isProcessing = false; }, 1800);
 
             const taskObj = tasks.find(t => t.id === currentTaskId);
             const studentId = decodedText.trim();
@@ -497,7 +507,6 @@
             msgArea.textContent = `🎉 [${taskObj.name}] 番号: ${studentId} の提出を受理！`;
             msgArea.className = "msg-success";
             
-            // 効果音と読み上げを同時実行
             playBeepSuccess();
             speakText(`${studentId}番、提出完了`);
 
@@ -548,18 +557,15 @@
             label.textContent = `番号: ${val}`;
         }
 
-        // --- スキャナーの設定（拡大 & 歪み補正・読み取り性能強化） ---
+        // --- カメラ・スキャナーの設定（正方形の枠線 & 大画面設定） ---
         const html5QrCode = new Html5QrcodeScanner(
             "reader",
             { 
-                fps: 15, // 1秒あたりのコマ数を増やして高速化
-                qrbox: (w, h) => {
-                    const min = Math.min(w, h);
-                    // 枠を90%まで広げて全画面でスキャン可能に設定
-                    return { width: Math.floor(min * 0.9), height: Math.floor(min * 0.9) };
-                },
+                fps: 15,
+                // 正方形（260px × 260px）のきれいなスキャン枠を指定
+                qrbox: { width: 260, height: 260 },
                 experimentalFeatures: {
-                    useBarCodeDetectorIfSupported: true // 斜め・反転・歪みに対する強化読み取り
+                    useBarCodeDetectorIfSupported: true
                 },
                 rememberLastUsedCamera: true
             },
