@@ -37,10 +37,10 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
-        /* --- カメラ画面の完全極大化スタイル --- */
+        /* --- カメラ画面の最適化スタイル --- */
         #reader-wrapper {
             width: 100%;
-            max-width: 700px;
+            max-width: 800px;
             margin: 0 auto;
             border-radius: 12px;
             overflow: hidden;
@@ -54,8 +54,8 @@
         #reader video {
             width: 100% !important;
             height: auto !important;
-            max-height: 65vh; /* タブレット画面等で縦に伸びすぎない設定 */
-            object-fit: cover !important;
+            max-height: 75vh; /* 縦横のバランスを崩さないよう拡大 */
+            object-fit: contain !important; /* 歪まず全体を表示 */
         }
         /* 不要なボタンやUIリンクの非表示 */
         #reader button, #reader a {
@@ -557,13 +557,23 @@
             label.textContent = `番号: ${val}`;
         }
 
-        // --- カメラ・スキャナーの設定（正方形の枠線 & 大画面設定） ---
+        // --- カメラ・スキャナーの設定（動的サイズ計算で枠を最大化） ---
+        function getResponsiveQrBoxSize(viewfinderWidth, viewfinderHeight) {
+            // 画面表示領域の短い方の70%のサイズで大きな正方形の枠を作成
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            const qrboxSize = Math.floor(minEdge * 0.7);
+            return {
+                width: qrboxSize,
+                height: qrboxSize
+            };
+        }
+
         const html5QrCode = new Html5QrcodeScanner(
             "reader",
             { 
                 fps: 15,
-                // 正方形（260px × 260px）のきれいなスキャン枠を指定
-                qrbox: { width: 260, height: 260 },
+                // 動的に決定した大きい正方形枠をセット
+                qrbox: getResponsiveQrBoxSize,
                 experimentalFeatures: {
                     useBarCodeDetectorIfSupported: true
                 },
