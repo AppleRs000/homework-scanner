@@ -567,21 +567,38 @@
                 height: qrboxSize
             };
         }
+const html5QrCode = new Html5QrcodeScanner(
+    "reader",
+    { 
+        fps: 15,
+        qrbox: getResponsiveQrBoxSize,
+        videoConstraints: {
+            facingMode: { exact: "environment" } // リアカメラ（外カメラ）を強制指定
+        },
+        experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true
+        },
+        rememberLastUsedCamera: true
+    },
+    false
+);
 
-        const html5QrCode = new Html5QrcodeScanner(
-            "reader",
-            { 
-                fps: 15,
-                // 動的に決定した大きい正方形枠をセット
-                qrbox: getResponsiveQrBoxSize,
-                experimentalFeatures: {
-                    useBarCodeDetectorIfSupported: true
-                },
-                rememberLastUsedCamera: true
-            },
-            false
-        );
-        html5QrCode.render(onScanSuccess);
-    </script>
-</body>
-</html>
+// エラー（カメラ非対応・アクセス拒否など）が発生した際のハンドリングを追加
+html5QrCode.render(onScanSuccess, (errorMessage) => {
+    // スキャン中の毎フレームの読み取りエラーは無視
+}).catch(err => {
+
+    // exact: "environment" で失敗した場合のフォールバック（通常のリアカメラ指定）
+    const fallbackScanner = new Html5QrcodeScanner(
+        "reader",
+        {
+            fps: 15,
+            qrbox: getResponsiveQrBoxSize,
+            videoConstraints: { facingMode: "environment" }
+        },
+        false
+    );
+    fallbackScanner.render(onScanSuccess);
+});
+
+        
