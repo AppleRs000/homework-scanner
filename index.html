@@ -20,7 +20,7 @@ button{border:0;border-radius:10px;padding:12px 16px;font-weight:bold}.blue{back
 .count{text-align:center;font-size:58px;font-weight:900}.progress{height:22px;background:#ddd;border-radius:99px;overflow:hidden}.bar{height:100%;width:0;background:#22c55e}
 .remaining{margin-top:12px;background:#fff1f2;border-radius:12px;padding:12px;text-align:center}.remaining.ok{background:#dcfce7}.remaining-title{font-size:22px;font-weight:bold}.nums{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px}.num{border:2px solid #f87171;background:#fff;border-radius:9px;padding:5px 9px;font-weight:bold}
 .targets{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}.target{padding:8px 2px;text-align:center;border:2px solid #ddd;border-radius:9px}.target.off{background:#eee;color:#999}
-.info{background:#eff6ff;border-radius:10px;padding:10px}.dates{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.date{background:#dbeafe;color:#1d4ed8;padding:5px 8px;border-radius:8px}
+.info{background:#eff6ff;border-radius:10px;padding:10px}.dates{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.date{background:#dbeafe;color:#1d4ed8;padding:5px 8px;border-radius:8px;display:inline-flex;align-items:center;gap:4px}.date-cancel{background:#fff;color:#1d4ed8;padding:2px 7px;border:1px solid #93c5fd;border-radius:7px;font-size:14px}.empty-task{background:#f8fafc;border:1px dashed #cbd5e1;border-radius:10px;padding:12px;color:#64748b}
 .notice{background:#fefce8;border:1px solid #fde68a;border-radius:12px;padding:12px;margin-bottom:10px}.small{font-size:13px;color:#666}
 .tablewrap{overflow:auto;border:1px solid #ddd;border-radius:10px}.matrix{border-collapse:separate;border-spacing:0;min-width:650px;width:100%;font-size:14px}.matrix th,.matrix td{padding:7px 9px;text-align:center;border-right:1px solid #ddd;border-bottom:1px solid #ddd;white-space:nowrap}.matrix th{background:#f1f5f9;position:sticky;top:0;z-index:2}.matrix th:first-child,.matrix td:first-child{position:sticky;left:0;z-index:3;background:#fff}.matrix th:first-child{background:#e2e8f0}.circle,.cross{font-size:18px}.rate{font-weight:bold}.qrgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.qr{border:1px solid #ddd;border-radius:10px;text-align:center;padding:10px}.qrcode{display:flex;justify-content:center}
 @media(max-width:600px){.targets{grid-template-columns:repeat(4,1fr)}.qrgrid{grid-template-columns:repeat(2,1fr)}.lastno{font-size:62px}.count{font-size:50px}}
@@ -59,11 +59,12 @@ button{border:0;border-radius:10px;padding:12px 16px;font-weight:bold}.blue{back
 <h2>📝 今日の宿題</h2>
 <select id="taskSelect" onchange="changeTask()"></select>
 <div id="taskInfo" class="info"></div>
-<div class="row"><button class="blue" onclick="addTask()">＋ 宿題追加</button><button class="red" onclick="deleteTask()">🗑 削除</button></div>
+<div class="row"><button class="blue" onclick="addTask()">＋ 宿題追加</button><button class="red" onclick="deleteTask()">🗑 宿題を削除</button></div>
 </div>
 
 <div class="card">
 <h2>📅 宿題の日付設定</h2>
+<div class="small" style="margin-bottom:8px">ここで登録した日だけ、提出状況一覧に表示されます。</div>
 <input id="taskDate" type="date">
 <button class="green" onclick="addDate()">＋ この日を追加</button>
 <div id="dates" class="dates"></div>
@@ -105,7 +106,8 @@ button{border:0;border-radius:10px;padding:12px 16px;font-weight:bold}.blue{back
 </div>
 
 <script>
-const K={tasks:"hs_tasks_v1",data:"hs_data_v1_",size:"hs_size_v1",prefix:"hs_prefix_v1"};
+const K={tasks:"hs_tasks_v2",data:"hs_data_v2_",size:"hs_size_v2",prefix:"hs_prefix_v2"};
+const OLD_K={tasks:"hs_tasks_v1",data:"hs_data_v1_",size:"hs_size_v1",prefix:"hs_prefix_v1"};
 let tasks=[],taskId=null,data={submitted:{},absent:[]},date="";
 let scanner=null,running=false,cameras=[],camIndex=0,lock=false,lastCode="",lastTime=0,audio=null;
 
@@ -124,26 +126,194 @@ function save(tid,d,x){localStorage.setItem(key(tid,d),JSON.stringify(x))}
 function saveTasks(){localStorage.setItem(K.tasks,JSON.stringify(tasks))}
 function target(id,t=task()){return !(t?.targetOff||[]).includes(id)}
 
+function migrateOldData(){
+ const hasNew=localStorage.getItem(K.tasks);
+ const oldRaw=localStorage.getItem(OLD_K.tasks);
+ if(hasNew||!oldRaw)return;
+ try{
+   let oldTasks=JSON.parse(oldRaw)||[];
+   /* 旧版が自動作成した「今日の宿題」だけで、まだ提出記録がない場合は移行しない */
+   oldTasks=oldTasks.filter(t=>{
+     if(t.name!=="今日の宿題" || !Array.isArray(t.dates) || t.dates.length!==1 || t.dates[0]!==today())return true;
+     const x=loadOld(t.id,t.dates[0]);
+     return Object.keys(x.submitted||{}).length>0 || (x.absent||[]).length>0;
+   });
+   localStorage.setItem(K.tasks,JSON.stringify(oldTasks));
+   /* 旧データを新しい保存領域へコピー */
+   for(let i=0;i<localStorage.length;i++){
+     const k=localStorage.key(i);
+     if(!k||!k.startsWith(OLD_K.data))continue;
+     const nk=K.data+k.slice(OLD_K.data.length);
+     if(!localStorage.getItem(nk))localStorage.setItem(nk,localStorage.getItem(k));
+   }
+   const oldSize=localStorage.getItem(OLD_K.size);
+   const oldPrefix=localStorage.getItem(OLD_K.prefix);
+   if(oldSize)localStorage.setItem(K.size,oldSize);
+   if(oldPrefix)localStorage.setItem(K.prefix,oldPrefix);
+ }catch(e){console.error("移行エラー",e)}
+}
+function loadOld(tid,d){try{let x=JSON.parse(localStorage.getItem(OLD_K.data+tid+"_"+d)||"null");return x?{submitted:x.submitted||{},absent:x.absent||[]}:empty()}catch{return empty()}}
 function init(){
- document.getElementById("size").value=size();document.getElementById("prefix").value=+prefix();document.getElementById("taskDate").value=today();
+ migrateOldData();
+ document.getElementById("size").value=size();
+ document.getElementById("prefix").value=+prefix();
+ document.getElementById("taskDate").value=today();
  try{tasks=JSON.parse(localStorage.getItem(K.tasks)||"[]")}catch{tasks=[]}
- if(!tasks.length){tasks=[{id:crypto.randomUUID?.()||Date.now().toString(),name:"今日の宿題",dates:[today()],targetOff:[]}];saveTasks()}
- taskId=tasks[0].id;renderSelect();loadCurrent();renderMatrix();
+ taskId=tasks[0]?.id||null;
+ renderSelect();
+ loadCurrent();
+ renderMatrix();
  if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
 }
-function renderSelect(){let s=document.getElementById("taskSelect");s.innerHTML="";tasks.forEach(t=>{let o=document.createElement("option");o.value=t.id;o.textContent=t.name;s.appendChild(o)});s.value=taskId}
-function changeTask(){taskId=document.getElementById("taskSelect").value;loadCurrent()}
-function addTask(){let n=prompt("宿題の名前");if(!n)return;let d=document.getElementById("taskDate").value;let t={id:crypto.randomUUID?.()||Date.now().toString(),name:n,dates:d?[d]:[],targetOff:[]};tasks.push(t);taskId=t.id;saveTasks();renderSelect();loadCurrent();renderMatrix()}
-function deleteTask(){let t=task();if(!t||!confirm(`「${t.name}」を削除しますか？`))return;tasks=tasks.filter(x=>x.id!==taskId);taskId=tasks[0]?.id;saveTasks();renderSelect();loadCurrent();renderMatrix()}
-function addDate(){let t=task(),d=document.getElementById("taskDate").value;if(!t||!d)return alert("日付を選択してください。");t.dates=t.dates||[];if(!t.dates.includes(d))t.dates.push(d);t.dates.sort();saveTasks();loadCurrent();renderMatrix()}
-function removeDate(d){let t=task();t.dates=t.dates.filter(x=>x!==d);saveTasks();loadCurrent();renderMatrix()}
-function loadCurrent(){let t=task();date=t?.dates?.includes(today())?today():(t?.dates?.at(-1)||today());data=load(taskId,date);renderTaskInfo();renderTargets();update()}
-function renderTaskInfo(){let t=task();document.getElementById("taskInfo").innerHTML=t?`<strong>${esc(t.name)}</strong><br><span class="small">${t.dates?.includes(today())?"📅 今日の提出日":"今日の提出日ではありません"}</span>`:"";let box=document.getElementById("dates");box.innerHTML="";(t?.dates||[]).forEach(d=>{let e=document.createElement("span");e.className="date";e.innerHTML=`${d} <button style="padding:1px 4px;background:none;color:#1d4ed8" onclick="removeDate('${d}')">×</button>`;box.appendChild(e)})}
+function renderSelect(){
+ let s=document.getElementById("taskSelect");
+ s.innerHTML="";
+ if(!tasks.length){
+   let o=document.createElement("option");
+   o.value="";
+   o.textContent="宿題が登録されていません";
+   s.appendChild(o);
+   s.disabled=true;
+   return;
+ }
+ s.disabled=false;
+ tasks.forEach(t=>{let o=document.createElement("option");o.value=t.id;o.textContent=t.name;s.appendChild(o)});
+ s.value=taskId||tasks[0].id;
+}
+function changeTask(){
+ taskId=document.getElementById("taskSelect").value||null;
+ loadCurrent();
+}
+function addTask(){
+ let n=prompt("宿題の名前を入力してください");
+ if(!n)return;
+ let t={id:crypto.randomUUID?.()||Date.now().toString(),name:n.trim(),dates:[],targetOff:[]};
+ tasks.push(t);
+ taskId=t.id;
+ saveTasks();
+ renderSelect();
+ loadCurrent();
+ renderMatrix();
+ alert(`「${t.name}」を追加しました。\n\n次に「宿題の日付設定」で提出日を登録してください。`);
+}
+function deleteTask(){
+ let t=task();
+ if(!t)return alert("削除する宿題を選択してください。");
+ if(!confirm(`「${t.name}」を宿題一覧から削除してもよいですか？\n\nこの宿題の登録と提出状況一覧からの表示を削除します。`))return;
+ tasks=tasks.filter(x=>x.id!==taskId);
+ taskId=tasks[0]?.id||null;
+ saveTasks();
+ renderSelect();
+ loadCurrent();
+ renderMatrix();
+}
+function addDate(){
+ let t=task(),d=document.getElementById("taskDate").value;
+ if(!t)return alert("先に宿題を追加してください。");
+ if(!d)return alert("日付を選択してください。");
+ t.dates=t.dates||[];
+ if(t.dates.includes(d))return alert("その日はすでに登録されています。");
+ t.dates.push(d);
+ t.dates.sort();
+ saveTasks();
+ loadCurrent();
+ renderMatrix();
+}
+function removeDate(d){
+ let t=task();
+ if(!t)return;
+ if(!confirm(`${d} の「${t.name}」を提出日から取り消してもよいですか？\n\nこの日の提出状況（⭕・❌・欠席）も削除されます。`))return;
+ t.dates=t.dates.filter(x=>x!==d);
+ localStorage.removeItem(key(t.id,d));
+ saveTasks();
+ if(date===d){
+   date=t.dates?.includes(today())?today():(t.dates?.at(-1)||"");
+   data=date?load(taskId,date):empty();
+ }
+ renderTaskInfo();
+ renderTargets();
+ update();
+ renderMatrix();
+ showUndo(d,t);
+}
+function showUndo(d,t){
+ let old=document.getElementById("undoNotice");
+ if(old)old.remove();
+ let box=document.createElement("div");
+ box.id="undoNotice";
+ box.className="notice";
+ box.innerHTML=`🗑️ ${esc(d)} の提出日を取り消しました。 <button class="blue" style="margin-left:6px;padding:7px 10px" onclick="undoRemoveDate('${esc(d)}','${esc(t.id)}')">元に戻す</button>`;
+ document.querySelector(".wrap").insertBefore(box,document.querySelector(".wrap").children[0]);
+ setTimeout(()=>{if(box.parentNode)box.remove()},8000);
+}
+function undoRemoveDate(d,tid){
+ let t=tasks.find(x=>x.id===tid);
+ if(!t)return;
+ if(!t.dates.includes(d))t.dates.push(d);
+ t.dates.sort();
+ saveTasks();
+ date=t.dates.includes(today())?today():(t.dates.at(-1)||"");
+ data=date?load(t.id,date):empty();
+ renderSelect();
+ renderTaskInfo();
+ renderTargets();
+ update();
+ renderMatrix();
+ let n=document.getElementById("undoNotice");if(n)n.remove();
+}
+function loadCurrent(){
+ let t=task();
+ if(!t){
+   date="";
+   data=empty();
+ }else{
+   date=t.dates?.includes(today())?today():(t.dates?.at(-1)||"");
+   data=date?load(taskId,date):empty();
+ }
+ renderTaskInfo();
+ renderTargets();
+ update();
+}
+function renderTaskInfo(){
+ let t=task();
+ let info=document.getElementById("taskInfo");
+ if(!t){
+   info.innerHTML='<div class="empty-task">まだ宿題が登録されていません。<br>「＋ 宿題追加」→「宿題の日付設定」で提出日を登録してください。</div>';
+ }else if(!t.dates?.length){
+   info.innerHTML=`<strong>${esc(t.name)}</strong><br><span class="small">📅 提出日がまだ登録されていません。</span>`;
+ }else{
+   info.innerHTML=`<strong>${esc(t.name)}</strong><br><span class="small">${t.dates.includes(today())?"📅 今日の提出日です":"今日は提出日ではありません"}</span>`;
+ }
+ let box=document.getElementById("dates");
+ box.innerHTML="";
+ (t?.dates||[]).forEach(d=>{
+   let e=document.createElement("span");
+   e.className="date";
+   e.innerHTML=`${esc(d)} <button class="date-cancel" onclick="removeDate('${esc(d)}')">キャンセル</button>`;
+   box.appendChild(e);
+ });
+}
 function renderTargets(){let box=document.getElementById("targets");box.innerHTML="";ids().forEach(id=>{let on=target(id),e=document.createElement("label");e.className="target"+(on?"":" off");e.innerHTML=`<input type="checkbox" ${on?"checked":""} onchange="toggleTarget('${id}',this.checked)"> ${id}`;box.appendChild(e)})}
 function toggleTarget(id,on){let t=task();t.targetOff=t.targetOff||[];if(on)t.targetOff=t.targetOff.filter(x=>x!==id);else{if(!t.targetOff.includes(id))t.targetOff.push(id);delete data.submitted[id]}saveTasks();save(taskId,date,data);renderTargets();update();renderMatrix()}
 function allTargets(on){let t=task();t.targetOff=on?[]:ids();if(!on)data.submitted={};saveTasks();save(taskId,date,data);renderTargets();update();renderMatrix()}
-function update(){let ts=ids().filter(id=>target(id)),abs=ts.filter(id=>data.absent.includes(id)),sub=ts.filter(id=>data.submitted[id]),den=ts.length-abs.length,rate=den?Math.round(sub.length/den*100):100;document.getElementById("count").textContent=`${sub.length} / ${ts.length}`;document.getElementById("bar").style.width=rate+"%";document.getElementById("absentInfo").textContent=`欠席 ${abs.length}人`;document.getElementById("excludeInfo").textContent=`提出対象外 ${ids().length-ts.length}人`;let rem=ts.filter(id=>!data.submitted[id]&&!data.absent.includes(id)),b=document.getElementById("remaining");b.classList.toggle("ok",!rem.length);document.getElementById("remainingTitle").textContent=rem.length?`🔴 あと${rem.length}人`:"🎉 全員提出！！";document.getElementById("remainingList").innerHTML=rem.map(x=>`<span class="num">${x}</span>`).join("")}
-function registerAbsent(){let id=idOf(document.getElementById("absentNo").value);if(!id)return alert("正しい番号を入力してください。");if(!target(id))return alert("提出対象外です。");if(!data.absent.includes(id))data.absent.push(id);save(taskId,date,data);document.getElementById("absentNo").value="";update();renderMatrix()}
+function update(){
+ let active=!!task()&&!!date;
+ let ts=active?ids().filter(id=>target(id)):[];
+ let abs=active?ts.filter(id=>data.absent.includes(id)):[];
+ let sub=active?ts.filter(id=>data.submitted[id]):[];
+ let den=ts.length-abs.length;
+ let rate=den?Math.round(sub.length/den*100):0;
+ document.getElementById("count").textContent=active?`${sub.length} / ${ts.length}`:"—";
+ document.getElementById("bar").style.width=(active?rate:0)+"%";
+ document.getElementById("absentInfo").textContent=active?`欠席 ${abs.length}人`:"提出日が設定されていません";
+ document.getElementById("excludeInfo").textContent=active?`提出対象外 ${ids().length-ts.length}人`:"";
+ let rem=active?ts.filter(id=>!data.submitted[id]&&!data.absent.includes(id)):[];
+ let b=document.getElementById("remaining");
+ b.classList.toggle("ok",active&&!rem.length);
+ document.getElementById("remainingTitle").textContent=!active?"📅 提出日を登録してください":(rem.length?`🔴 あと${rem.length}人`:"🎉 全員提出！！");
+ document.getElementById("remainingList").innerHTML=rem.map(x=>`<span class="num">${x}</span>`).join("");
+}
+function registerAbsent(){if(!task()||!date)return alert("先に宿題の提出日を登録してください。");let id=idOf(document.getElementById("absentNo").value);if(!id)return alert("正しい番号を入力してください。");if(!target(id))return alert("提出対象外です。");if(!data.absent.includes(id))data.absent.push(id);save(taskId,date,data);document.getElementById("absentNo").value="";update();renderMatrix()}
 
 async function toggleScanner(){running?await stopScanner():await startScanner()}
 async function startScanner(){try{audioCtx();cameras=await Html5Qrcode.getCameras();if(!cameras.length)return alert("カメラがありません。");camIndex=Math.max(0,cameras.findIndex(c=>/back|rear|environment/i.test(c.label)));await startCam(cameras[camIndex].id)}catch(e){console.error(e);alert("カメラを起動できませんでした。ブラウザのカメラ許可を確認してください。")}}
@@ -151,7 +321,14 @@ async function startCam(cid){scanner=new Html5Qrcode("reader");await scanner.sta
 async function stopScanner(){if(scanner){try{await scanner.stop()}catch{}try{scanner.clear()}catch{}}scanner=null;running=false;document.getElementById("scanBtn").textContent="🔊 スキャン開始";document.getElementById("scanBtn").classList.remove("stop")}
 async function switchCamera(){if(!running)return alert("まずスキャンを開始してください。");if(cameras.length<2)return alert("切替可能なカメラがありません。");camIndex=(camIndex+1)%cameras.length;try{await scanner.stop();await scanner.clear()}catch{}scanner=null;await startCam(cameras[camIndex].id)}
 function scanFail(){}
-function scanOK(text){let now=Date.now();if(text===lastCode&&now-lastTime<1000)return;lastCode=text;lastTime=now;if(lock)return;lock=true;setTimeout(()=>lock=false,300);let id=idOf(text),n=document.getElementById("lastNo"),m=document.getElementById("lastMsg");if(!id){n.textContent="?";m.textContent="❌ 無効なQR";beep(220);return}n.textContent=id;if(!target(id)){m.textContent="⏸ 提出対象外";beep(330);return}if(data.absent.includes(id)){m.textContent="🚫 欠席登録";beep(330);return}if(data.submitted[id]){m.textContent="⚠️ すでに提出済み";beep(440);return}data.submitted[id]={time:new Date().toLocaleTimeString("ja-JP")};save(taskId,date,data);m.textContent="✅ 提出しました！";beep(880);update();renderMatrix()}
+function scanOK(text){
+ if(!task()||!date){
+   document.getElementById("lastNo").textContent="—";
+   document.getElementById("lastMsg").textContent="📅 先に提出日を登録してください";
+   beep(220);
+   return;
+ }
+ let now=Date.now();if(text===lastCode&&now-lastTime<1000)return;lastCode=text;lastTime=now;if(lock)return;lock=true;setTimeout(()=>lock=false,300);let id=idOf(text),n=document.getElementById("lastNo"),m=document.getElementById("lastMsg");if(!id){n.textContent="?";m.textContent="❌ 無効なQR";beep(220);return}n.textContent=id;if(!target(id)){m.textContent="⏸ 提出対象外";beep(330);return}if(data.absent.includes(id)){m.textContent="🚫 欠席登録";beep(330);return}if(data.submitted[id]){m.textContent="⚠️ すでに提出済み";beep(440);return}data.submitted[id]={time:new Date().toLocaleTimeString("ja-JP")};save(taskId,date,data);m.textContent="✅ 提出しました！";beep(880);update();renderMatrix()}
 function audioCtx(){if(!audio)audio=new(window.AudioContext||window.webkitAudioContext)();if(audio.state==="suspended")audio.resume()}
 function beep(f){audioCtx();let o=audio.createOscillator(),g=audio.createGain();o.frequency.value=f;g.gain.value=.12;o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+.12)}
 
