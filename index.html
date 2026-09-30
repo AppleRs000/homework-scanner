@@ -426,8 +426,40 @@ function cell(c,id){let d=load(c.t.id,c.d);if(!target(id,c.t)||d.absent.includes
 function rate(id,cs){let s=0,n=0;cs.forEach(c=>{let v=cell(c,id);if(v==="—")return;n++;if(v==="⭕")s++});return n?Math.round(s/n*100):null}
 function renderMatrix(){let cs=columns(),box=document.getElementById("matrix");if(!cs.length){box.innerHTML='<div class="small">まだ宿題の日付がありません。</div>';return}let h='<div class="tablewrap"><table class="matrix"><tr><th>番号</th>';cs.forEach(c=>h+=`<th>${esc(c.d.slice(5))}<br>${esc(c.t.name)}</th>`);h+="<th>提出率</th></tr>";ids().forEach(id=>{let r=rate(id,cs);h+=`<tr><td><strong>${id}番</strong></td>`;cs.forEach(c=>{let v=cell(c,id);h+=`<td class="${v==="⭕"?"circle":v==="❌"?"cross":""}">${v}</td>`});h+=`<td class="rate">${r===null?"—":r+"%"}</td></tr>`});box.innerHTML=h+"</table></div>"}
 function exportCSV(){let cs=columns();if(!cs.length)return alert("宿題の日付がありません。");let rows=[["出席番号",...cs.map(c=>`${c.d} ${c.t.name}`),"提出率"]];ids().forEach(id=>{let r=rate(id,cs);rows.push([id,...cs.map(c=>cell(c,id)),r===null?"":r+"%"])});let csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n"),u=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"})),a=document.createElement("a");a.href=u;a.download="宿題提出一覧.csv";a.click();URL.revokeObjectURL(u)}
-function saveClass(){let s=+document.getElementById("size").value,p=+document.getElementById("prefix").value;if(s<1||s>99||p<1||p>99)return alert("設定値を確認してください。");localStorage.setItem(K.size,s);localStorage.setItem(K.prefix,String(p).padStart(2,"0"));renderTargets();update();renderMatrix()}
-function makeQR(){let g=document.getElementById("qrgrid");g.innerHTML="";ids().forEach(id=>{let e=document.createElement("div");e.className="qr";e.innerHTML=`<strong>${id}番</strong><div class="qrcode"></div>`;g.appendChild(e);new QRCode(e.querySelector(".qrcode"),{text:prefix()+id,width:170,height:170,correctLevel:QRCode.CorrectLevel.H})})}
+function saveClass(){let s=+document.getElementById("size").value,p=+document.getElementById("prefix").value;if(s<1||s>99||p<1||p>99)return alert("設定値を確認してください。");localStorage.setItem(K.size,s);localStorage.setItem(K.prefix,String(p).padStart(2,"0"));renderTargets();update();renderMatrix()} function makeQR(){
+  let g=document.getElementById("qrgrid");
+  g.innerHTML="";
+
+  ids().forEach(id=>{
+    let e=document.createElement("div");
+    e.className="qr";
+
+    e.innerHTML=`
+      <strong>${id}番</strong>
+      <div class="qrcode"></div>
+    `;
+
+    g.appendChild(e);
+
+    new QRCode(e.querySelector(".qrcode"),{
+      text:prefix()+id,
+      width:220,
+      height:220,
+      correctLevel:QRCode.CorrectLevel.H
+    });
+  });
+}
+  function printQR(){
+  const grid=document.getElementById("qrgrid");
+
+  if(!grid.children.length){
+    makeQR();
+  }
+
+  setTimeout(()=>{
+    window.print();
+  },300);
+}
 window.addEventListener("load",init);
 </script>
 </body>
