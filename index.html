@@ -13,6 +13,10 @@
 
 <style>
 
+/* =========================================================
+   基本
+========================================================= */
+
 *{
   box-sizing:border-box;
 }
@@ -72,6 +76,7 @@ button{
   border-radius:10px;
   padding:12px 16px;
   font-weight:bold;
+  cursor:pointer;
 }
 
 .blue{
@@ -102,6 +107,11 @@ button{
 .row>*{
   flex:1;
 }
+
+
+/* =========================================================
+   スキャナー
+========================================================= */
 
 .scan{
   width:100%;
@@ -142,6 +152,11 @@ button{
   height:auto!important;
 }
 
+
+/* =========================================================
+   最終読み取り
+========================================================= */
+
 .last{
   text-align:center;
 }
@@ -160,6 +175,11 @@ button{
   font-size:22px;
   font-weight:bold;
 }
+
+
+/* =========================================================
+   提出状況
+========================================================= */
 
 .count{
   text-align:center;
@@ -213,6 +233,11 @@ button{
   font-weight:bold;
 }
 
+
+/* =========================================================
+   提出対象
+========================================================= */
+
 .targets{
   display:grid;
   grid-template-columns:repeat(6,1fr);
@@ -230,6 +255,11 @@ button{
   background:#eee;
   color:#999;
 }
+
+
+/* =========================================================
+   その他
+========================================================= */
 
 .info{
   background:#eff6ff;
@@ -284,6 +314,11 @@ button{
   color:#666;
 }
 
+
+/* =========================================================
+   提出状況一覧
+========================================================= */
+
 .tablewrap{
   overflow:auto;
   border:1px solid #ddd;
@@ -335,33 +370,92 @@ button{
   font-weight:bold;
 }
 
-.qrgrid{
+
+/* =========================================================
+   QRコード作成画面
+========================================================= */
+
+.qr-settings{
+  background:#eff6ff;
+  border-radius:12px;
+  padding:12px;
+  margin-bottom:12px;
+}
+
+.qr-settings-title{
+  font-weight:bold;
+  margin-bottom:8px;
+}
+
+.qr-page{
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:12px;
+  padding:12px;
+  margin-top:12px;
+}
+
+.qr-page-title{
+  font-weight:bold;
+  font-size:16px;
+  margin-bottom:8px;
+}
+
+.qr-grid{
   display:grid;
-  grid-template-columns:repeat(3,1fr);
   gap:10px;
 }
 
-.qr{
-  border:1px solid #ddd;
+.qr-item{
+  border:2px solid #333;
   border-radius:10px;
-  text-align:center;
+  background:#fff;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
   padding:10px;
+  min-width:0;
+  min-height:0;
+}
+
+.qr-number{
+  font-weight:900;
+  font-size:20px;
+  margin-bottom:6px;
 }
 
 .qrcode{
   display:flex;
-  justify-content:center;
   align-items:center;
+  justify-content:center;
+  width:100%;
+  min-height:0;
 }
+
+/*
+  QRCode.jsがcanvasとimgの両方を作る環境があるため、
+  JS側でも片方だけ残す。
+*/
+.qrcode canvas,
+.qrcode img{
+  display:block;
+  width:var(--qr-size,55mm)!important;
+  height:var(--qr-size,55mm)!important;
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+}
+
+
+/* =========================================================
+   スマホ
+========================================================= */
 
 @media(max-width:600px){
 
   .targets{
     grid-template-columns:repeat(4,1fr);
-  }
-
-  .qrgrid{
-    grid-template-columns:repeat(2,1fr);
   }
 
   .lastno{
@@ -372,275 +466,177 @@ button{
     font-size:50px;
   }
 
+  .row{
+    flex-direction:column;
+  }
+
 }
 
 
-/* =====================================================
-   QRコード印刷専用
-   ===================================================== */
+/* =========================================================
+   印刷
+========================================================= */
 
 @media print{
 
+  /*
+    A4縦
+    ブラウザの印刷設定で「倍率100%」を基本にする
+  */
   @page{
     size:A4 portrait;
-    margin:0;
+    margin:10mm;
   }
 
   html,
   body{
-    margin:0 !important;
-    padding:0 !important;
-    background:#fff !important;
+    width:210mm;
+    margin:0;
+    padding:0;
+    background:#fff!important;
   }
 
+  body{
+    color:#000;
+  }
+
+  /*
+    印刷時はQRカード以外を全部消す
+  */
   body > header,
   .wrap > *:not(.qr-card){
-    display:none !important;
+    display:none!important;
   }
 
   .qr-card{
-    display:block !important;
-    margin:0 !important;
-    padding:0 !important;
-    background:#fff !important;
-    box-shadow:none !important;
-    border-radius:0 !important;
+    display:block!important;
+    margin:0!important;
+    padding:0!important;
+    background:#fff!important;
+    border:0!important;
+    box-shadow:none!important;
   }
 
-  .qr-card h2,
+  .qr-card > h2,
   .qr-card > .row,
-  .qr-card > .small{
-    display:none !important;
+  .qr-card > .small,
+  .qr-settings{
+    display:none!important;
   }
 
   /*
-     QRページ
-     A4 = 210mm × 297mm
+    A4の印刷可能領域
+    210 - 左右20 = 190mm
+    297 - 上下20 = 277mm
   */
-
   .qr-page{
+    width:190mm;
+    height:277mm;
 
-    width:210mm !important;
-    height:297mm !important;
+    margin:0;
+    padding:0;
 
-    margin:0 !important;
+    border:0;
+    border-radius:0;
 
-    padding:10mm !important;
+    background:#fff;
 
-    display:grid !important;
+    break-after:page;
+    page-break-after:always;
 
-    gap:6mm !important;
-
-    page-break-after:always !important;
-    break-after:page !important;
-
-    overflow:hidden !important;
-
-    background:#fff !important;
-
+    overflow:hidden;
   }
 
   .qr-page:last-child{
-    page-break-after:auto !important;
-    break-after:auto !important;
+    break-after:auto;
+    page-break-after:auto;
+  }
+
+  .qr-page-title{
+    display:none;
   }
 
   /*
-     QRカード
+    gridの列数・行数はJSから設定
   */
+  .qr-grid{
+    width:190mm;
+    height:277mm;
 
-  .qr{
+    display:grid!important;
 
-    min-width:0 !important;
-    min-height:0 !important;
+    gap:4mm!important;
 
-    width:auto !important;
-    height:auto !important;
-
-    margin:0 !important;
-
-    padding:5mm !important;
-
-    border:0.4mm solid #222 !important;
-
-    border-radius:3mm !important;
-
-    display:flex !important;
-
-    flex-direction:column !important;
-
-    justify-content:center !important;
-
-    align-items:center !important;
-
-    text-align:center !important;
-
-    overflow:hidden !important;
-
-    break-inside:avoid !important;
-    page-break-inside:avoid !important;
-
+    margin:0!important;
+    padding:0!important;
   }
 
-  .qr strong{
+  .qr-item{
+    min-width:0!important;
+    min-height:0!important;
 
-    display:block !important;
+    width:auto!important;
+    height:auto!important;
 
-    font-size:18pt !important;
+    border:0.5mm solid #333!important;
+    border-radius:3mm!important;
 
-    line-height:1.2 !important;
+    padding:4mm!important;
 
-    margin:0 0 4mm 0 !important;
+    break-inside:avoid;
+    page-break-inside:avoid;
 
-    flex:0 0 auto !important;
+    overflow:hidden;
+  }
 
+  .qr-number{
+    font-size:16pt;
+    line-height:1.1;
+    margin-bottom:3mm;
   }
 
   .qrcode{
-
-    width:auto !important;
-    height:auto !important;
-
-    display:flex !important;
-
-    justify-content:center !important;
-    align-items:center !important;
-
-    flex:0 0 auto !important;
-
+    width:100%!important;
+    height:auto!important;
+    flex:1;
+    min-height:0!important;
   }
 
   .qrcode canvas,
   .qrcode img{
+    display:block!important;
 
-    width:40mm !important;
-    height:40mm !important;
+    width:var(--qr-size)!important;
+    height:var(--qr-size)!important;
 
-    max-width:40mm !important;
-    max-height:40mm !important;
+    max-width:100%!important;
+    max-height:100%!important;
 
-    display:block !important;
+    object-fit:contain!important;
+  }
 
-    margin:0 !important;
-
+  /*
+    空白セルは枠も消す
+  */
+  .qr-item.empty{
+    border:0!important;
+    background:transparent!important;
   }
 
 }
 
 
-/*
-=====================================================
-  1ページのQR枚数ごとのレイアウト
-=====================================================
+/* =========================================================
+   印刷時：QRコード二重表示防止
+========================================================= */
 
-  2枚 → 2行1列
-  3枚 → 3行1列
-  4枚 → 2行2列
-  5枚 → 5行1列
-  6枚 → 3行2列
-  7枚 → 4行2列
-  8枚 → 4行2列
-  9枚 → 3行3列
- 10枚 → 5行2列
-*/
-
-@media print{
-
-  .qr-page[data-count="2"]{
-    grid-template-columns:1fr;
-    grid-template-rows:repeat(2,1fr);
-  }
-
-  .qr-page[data-count="3"]{
-    grid-template-columns:1fr;
-    grid-template-rows:repeat(3,1fr);
-  }
-
-  .qr-page[data-count="4"]{
-    grid-template-columns:repeat(2,1fr);
-    grid-template-rows:repeat(2,1fr);
-  }
-
-  .qr-page[data-count="5"]{
-    grid-template-columns:1fr;
-    grid-template-rows:repeat(5,1fr);
-  }
-
-  .qr-page[data-count="6"]{
-    grid-template-columns:repeat(2,1fr);
-    grid-template-rows:repeat(3,1fr);
-  }
-
-  .qr-page[data-count="7"]{
-    grid-template-columns:repeat(2,1fr);
-    grid-template-rows:repeat(4,1fr);
-  }
-
-  .qr-page[data-count="8"]{
-    grid-template-columns:repeat(2,1fr);
-    grid-template-rows:repeat(4,1fr);
-  }
-
-  .qr-page[data-count="9"]{
-    grid-template-columns:repeat(3,1fr);
-    grid-template-rows:repeat(3,1fr);
-  }
-
-  .qr-page[data-count="10"]{
-    grid-template-columns:repeat(2,1fr);
-    grid-template-rows:repeat(5,1fr);
-  }
-
-}
-
-
-/* =====================================================
-   5枚以上はQRサイズを少し調整
-   ===================================================== */
-
-@media print{
-
-  .qr-page[data-count="5"] .qrcode canvas,
-  .qr-page[data-count="5"] .qrcode img{
-    width:42mm !important;
-    height:42mm !important;
-  }
-
-  .qr-page[data-count="6"] .qrcode canvas,
-  .qr-page[data-count="6"] .qrcode img{
-    width:42mm !important;
-    height:42mm !important;
-  }
-
-  .qr-page[data-count="7"] .qrcode canvas,
-  .qr-page[data-count="7"] .qrcode img,
-  .qr-page[data-count="8"] .qrcode canvas,
-  .qr-page[data-count="8"] .qrcode img{
-    width:36mm !important;
-    height:36mm !important;
-  }
-
-  .qr-page[data-count="9"] .qrcode canvas,
-  .qr-page[data-count="9"] .qrcode img{
-    width:34mm !important;
-    height:34mm !important;
-  }
-
-  .qr-page[data-count="10"] .qrcode canvas,
-  .qr-page[data-count="10"] .qrcode img{
-    width:32mm !important;
-    height:32mm !important;
-  }
-
-  .qr-page[data-count="9"] .qr strong,
-  .qr-page[data-count="10"] .qr strong{
-    font-size:15pt !important;
-  }
-
+.qrcode img{
+  display:none;
 }
 
 </style>
 </head>
+
 
 <body>
 
@@ -654,19 +650,31 @@ button{
 「提出状況一覧」は <strong>行＝児童、列＝宿題（日付）</strong> です。提出＝⭕、未提出＝❌、対象外・欠席＝—。
 </div>
 
-<button id="scanBtn" class="scan" onclick="toggleScanner()">🔊 スキャン開始</button>
 
-<button id="camBtn" class="cam" onclick="switchCamera()">🤳 カメラ切替</button>
+<!-- =====================================================
+     スキャン
+===================================================== -->
+
+<button id="scanBtn" class="scan" onclick="toggleScanner()">
+🔊 スキャン開始
+</button>
+
+<button id="camBtn" class="cam" onclick="switchCamera()">
+🤳 カメラ切替
+</button>
 
 <div class="reader">
   <div id="reader"></div>
 </div>
 
+
 <div class="last">
 
 <small>最後に読み取った番号</small>
 
-<div id="lastNo" class="lastno">--</div>
+<div id="lastNo" class="lastno">
+--
+</div>
 
 <div id="lastMsg" class="lastmsg">
 QRコードを読み取ってください
@@ -675,9 +683,15 @@ QRコードを読み取ってください
 </div>
 
 
+<!-- =====================================================
+     今日の提出状況
+===================================================== -->
+
 <div class="status">
 
-<div id="count" class="count">0 / 0</div>
+<div id="count" class="count">
+0 / 0
+</div>
 
 <div style="text-align:center;color:#666">
 今日の提出状況
@@ -712,27 +726,25 @@ QRコードを読み取ってください
 </div>
 
 
+<!-- =====================================================
+     今日の宿題
+===================================================== -->
+
 <div class="card">
 
 <h2>📝 今日の宿題</h2>
 
-<select id="taskSelect"
-        onchange="changeTask()">
-</select>
+<select id="taskSelect" onchange="changeTask()"></select>
 
-<div id="taskInfo"
-     class="info">
-</div>
+<div id="taskInfo" class="info"></div>
 
 <div class="row">
 
-<button class="blue"
-        onclick="addTask()">
+<button class="blue" onclick="addTask()">
 ＋ 宿題追加
 </button>
 
-<button class="red"
-        onclick="deleteTask()">
+<button class="red" onclick="deleteTask()">
 🗑 宿題を削除
 </button>
 
@@ -741,29 +753,32 @@ QRコードを読み取ってください
 </div>
 
 
+<!-- =====================================================
+     宿題の日付
+===================================================== -->
+
 <div class="card">
 
 <h2>📅 宿題の日付設定</h2>
 
-<div class="small"
-     style="margin-bottom:8px">
+<div class="small" style="margin-bottom:8px">
 ここで登録した日だけ、提出状況一覧に表示されます。
 </div>
 
-<input id="taskDate"
-       type="date">
+<input id="taskDate" type="date">
 
-<button class="green"
-        onclick="addDate()">
+<button class="green" onclick="addDate()">
 ＋ この日を追加
 </button>
 
-<div id="dates"
-     class="dates">
-</div>
+<div id="dates" class="dates"></div>
 
 </div>
 
+
+<!-- =====================================================
+     提出対象
+===================================================== -->
 
 <div class="card">
 
@@ -771,21 +786,17 @@ QRコードを読み取ってください
 
 <div style="margin-bottom:8px">
 
-<button class="green"
-        onclick="allTargets(true)">
+<button class="green" onclick="allTargets(true)">
 全員ON
 </button>
 
-<button class="gray"
-        onclick="allTargets(false)">
+<button class="gray" onclick="allTargets(false)">
 全員OFF
 </button>
 
 </div>
 
-<div id="targets"
-     class="targets">
-</div>
+<div id="targets" class="targets"></div>
 
 <div class="small">
 OFFにした児童は、その宿題の日の提出率計算から除外します。
@@ -794,22 +805,31 @@ OFFにした児童は、その宿題の日の提出率計算から除外しま�
 </div>
 
 
+<!-- =====================================================
+     欠席
+===================================================== -->
+
 <div class="card">
 
 <h2>🚫 欠席登録</h2>
 
-<input id="absentNo"
-       type="number"
-       inputmode="numeric"
-       placeholder="出席番号">
+<input
+  id="absentNo"
+  type="number"
+  inputmode="numeric"
+  placeholder="出席番号"
+>
 
-<button class="gray"
-        onclick="registerAbsent()">
+<button class="gray" onclick="registerAbsent()">
 欠席として登録
 </button>
 
 </div>
 
+
+<!-- =====================================================
+     クラス設定
+===================================================== -->
 
 <div class="card">
 
@@ -817,25 +837,32 @@ OFFにした児童は、その宿題の日の提出率計算から除外しま�
 
 <label>クラス番号</label>
 
-<input id="prefix"
-       type="number"
-       min="1"
-       max="99">
+<input
+  id="prefix"
+  type="number"
+  min="1"
+  max="99"
+>
 
 <label>学級人数</label>
 
-<input id="size"
-       type="number"
-       min="1"
-       max="99">
+<input
+  id="size"
+  type="number"
+  min="1"
+  max="99"
+>
 
-<button class="green"
-        onclick="saveClass()">
+<button class="green" onclick="saveClass()">
 💾 設定を保存
 </button>
 
 </div>
 
+
+<!-- =====================================================
+     提出状況一覧
+===================================================== -->
 
 <div class="card">
 
@@ -845,95 +872,92 @@ OFFにした児童は、その宿題の日の提出率計算から除外しま�
 ⭕＝提出　❌＝未提出　—＝対象外・欠席　／　最後の列は累積提出率
 </div>
 
-<div class="row"
-     style="margin-top:8px">
+<div class="row" style="margin-top:8px">
 
-<button class="blue"
-        onclick="renderMatrix()">
+<button class="blue" onclick="renderMatrix()">
 🔄 更新
 </button>
 
-<button class="green"
-        onclick="exportCSV()">
+<button class="green" onclick="exportCSV()">
 📥 CSV保存
 </button>
 
 </div>
 
-<div id="matrix"
-     style="margin-top:10px">
-</div>
+<div id="matrix" style="margin-top:10px"></div>
 
 </div>
 
 
-<!-- =================================================
-     QRコード
-================================================= -->
+<!-- =====================================================
+     QRコード作成
+===================================================== -->
 
 <div class="card qr-card">
 
 <h2>🔳 QRコード作成</h2>
 
+
+<div class="qr-settings">
+
+<div class="qr-settings-title">
+📄 A4 1枚あたりの人数
+</div>
+
+<select id="qrPerPage" onchange="qrPerPageChanged()">
+
+<option value="2">2人 / 枚</option>
+<option value="3">3人 / 枚</option>
+<option value="4">4人 / 枚</option>
+<option value="5">5人 / 枚</option>
+<option value="6" selected>6人 / 枚</option>
+<option value="7">7人 / 枚</option>
+<option value="8">8人 / 枚</option>
+<option value="9">9人 / 枚</option>
+<option value="10">10人 / 枚</option>
+
+</select>
+
+<div id="qrPageInfo" class="small">
+</div>
+
+</div>
+
+
 <div class="row">
 
-<button class="blue"
-        onclick="makeQR()">
-QRコードを作成
+<button class="blue" onclick="makeQR()">
+🔳 QRコードを作成
 </button>
 
-<button class="green"
-        onclick="printQR()">
+<button class="green" onclick="printQR()">
 🖨️ 印刷
 </button>
 
 </div>
 
 
-<!-- ここを追加 -->
-<div style="margin-top:12px">
+<div class="small" style="margin-top:8px">
 
-<label>
-<strong>📄 A4 1枚あたりの人数</strong>
-</label>
-
-<select id="qrPerPage">
-
-<option value="2">2人 / 1枚</option>
-<option value="3">3人 / 1枚</option>
-<option value="4">4人 / 1枚</option>
-<option value="5">5人 / 1枚</option>
-<option value="6" selected>6人 / 1枚</option>
-<option value="7">7人 / 1枚</option>
-<option value="8">8人 / 1枚</option>
-<option value="9">9人 / 1枚</option>
-<option value="10">10人 / 1枚</option>
-
-</select>
+A4 1枚あたりの人数を選ぶと、
+人数に合わせてQRコードの大きさと配置を自動調整します。
 
 </div>
 
 
-<div class="small"
-     style="margin-top:8px">
-
-A4 1枚に入れる人数を2～10人から選べます。<br>
-選択した人数に合わせて、QRコードを自動で均等配置します。
+<div id="qrgrid" style="margin-top:12px"></div>
 
 </div>
 
-
-<div id="qrgrid"
-     class="qrgrid"
-     style="margin-top:12px">
-</div>
-
-</div>
 
 </div>
 
 
 <script>
+
+/* =========================================================
+   保存キー
+========================================================= */
 
 const K={
   tasks:"hs_tasks_v2",
@@ -949,8 +973,14 @@ const OLD_K={
   prefix:"hs_prefix_v1"
 };
 
+
+/* =========================================================
+   状態
+========================================================= */
+
 let tasks=[];
 let taskId=null;
+
 let data={
   submitted:{},
   absent:[]
@@ -960,46 +990,59 @@ let date="";
 
 let scanner=null;
 let running=false;
+
 let cameras=[];
 let camIndex=0;
+
 let lock=false;
 let lastCode="";
 let lastTime=0;
+
 let audio=null;
 
 
-/* =========================
-   基本
-========================= */
+/* =========================================================
+   基本関数
+========================================================= */
 
 const today=()=>{
 
   let d=new Date();
 
   let m=String(d.getMonth()+1).padStart(2,"0");
-
   let day=String(d.getDate()).padStart(2,"0");
 
   return `${d.getFullYear()}-${m}-${day}`;
+};
+
+
+const size=()=>{
+
+  return parseInt(
+    localStorage.getItem(K.size)||"37",
+    10
+  );
 
 };
 
 
-const size=()=>parseInt(
-  localStorage.getItem(K.size)||"37",
-  10
-);
+const prefix=()=>{
+
+  return String(
+    localStorage.getItem(K.prefix)||"31"
+  ).padStart(2,"0");
+
+};
 
 
-const prefix=()=>String(
-  localStorage.getItem(K.prefix)||"31"
-).padStart(2,"0");
+const ids=()=>{
 
+  return Array.from(
+    {length:size()},
+    (_,i)=>String(i+1).padStart(2,"0")
+  );
 
-const ids=()=>Array.from(
-  {length:size()},
-  (_,i)=>String(i+1).padStart(2,"0")
-);
+};
 
 
 const idOf=v=>{
@@ -1017,12 +1060,13 @@ const idOf=v=>{
   let n=
     v.length===4 &&
     v.slice(0,2)===prefix()
-      ? +v.slice(2)
-      : +v;
+      ?+v.slice(2)
+      :+v;
 
   return n>=1&&n<=size()
-    ? String(n).padStart(2,"0")
-    : null;
+    ?String(n).padStart(2,"0")
+    :null;
+
 };
 
 
@@ -1061,11 +1105,11 @@ function load(tid,d){
     );
 
     return x
-      ? {
+      ?{
           submitted:x.submitted||{},
           absent:x.absent||[]
         }
-      : empty();
+      :empty();
 
   }catch{
 
@@ -1103,9 +1147,9 @@ function target(id,t=task()){
 }
 
 
-/* =========================
-   データ移行
-========================= */
+/* =========================================================
+   旧データ移行
+========================================================= */
 
 function migrateOldData(){
 
@@ -1131,21 +1175,14 @@ function migrateOldData(){
           t.dates.length!==1||
           t.dates[0]!==today()
         ){
-
           return true;
-
         }
 
         const x=
-          loadOld(
-            t.id,
-            t.dates[0]
-          );
+          loadOld(t.id,t.dates[0]);
 
         return(
-          Object.keys(
-            x.submitted||{}
-          ).length>0||
+          Object.keys(x.submitted||{}).length>0||
           (x.absent||[]).length>0
         );
 
@@ -1174,13 +1211,9 @@ function migrateOldData(){
 
       const nk=
         K.data+
-        k.slice(
-          OLD_K.data.length
-        );
+        k.slice(OLD_K.data.length);
 
-      if(
-        !localStorage.getItem(nk)
-      ){
+      if(!localStorage.getItem(nk)){
 
         localStorage.setItem(
           nk,
@@ -1193,27 +1226,30 @@ function migrateOldData(){
 
 
     const oldSize=
-      localStorage.getItem(
-        OLD_K.size
-      );
+      localStorage.getItem(OLD_K.size);
 
     const oldPrefix=
-      localStorage.getItem(
-        OLD_K.prefix
-      );
+      localStorage.getItem(OLD_K.prefix);
 
 
-    if(oldSize)
+    if(oldSize){
+
       localStorage.setItem(
         K.size,
         oldSize
       );
 
-    if(oldPrefix)
+    }
+
+
+    if(oldPrefix){
+
       localStorage.setItem(
         K.prefix,
         oldPrefix
       );
+
+    }
 
 
   }catch(e){
@@ -1232,22 +1268,18 @@ function loadOld(tid,d){
 
   try{
 
-    let x=
-      JSON.parse(
-        localStorage.getItem(
-          OLD_K.data+
-          tid+
-          "_"+
-          d
-        )||"null"
-      );
+    let x=JSON.parse(
+      localStorage.getItem(
+        OLD_K.data+tid+"_"+d
+      )||"null"
+    );
 
     return x
-      ? {
+      ?{
           submitted:x.submitted||{},
           absent:x.absent||[]
         }
-      : empty();
+      :empty();
 
   }catch{
 
@@ -1258,35 +1290,26 @@ function loadOld(tid,d){
 }
 
 
-/* =========================
+/* =========================================================
    初期化
-========================= */
+========================================================= */
 
 function init(){
 
   migrateOldData();
 
-  document.getElementById(
-    "size"
-  ).value=size();
+  document.getElementById("size").value=size();
 
-  document.getElementById(
-    "prefix"
-  ).value=+prefix();
+  document.getElementById("prefix").value=+prefix();
 
-  document.getElementById(
-    "taskDate"
-  ).value=today();
+  document.getElementById("taskDate").value=today();
 
 
   try{
 
-    tasks=
-      JSON.parse(
-        localStorage.getItem(
-          K.tasks
-        )||"[]"
-      );
+    tasks=JSON.parse(
+      localStorage.getItem(K.tasks)||"[]"
+    );
 
   }catch{
 
@@ -1306,10 +1329,10 @@ function init(){
 
   renderMatrix();
 
+  updateQRPageInfo();
 
-  if(
-    "serviceWorker" in navigator
-  ){
+
+  if("serviceWorker" in navigator){
 
     navigator.serviceWorker
       .register("./sw.js")
@@ -1319,6 +1342,10 @@ function init(){
 
 }
 
+
+/* =========================================================
+   宿題選択
+========================================================= */
 
 function renderSelect(){
 
@@ -1375,22 +1402,25 @@ function renderSelect(){
 }
 
 
+/* =========================================================
+   宿題変更
+========================================================= */
+
 function changeTask(){
 
   taskId=
     document.getElementById(
       "taskSelect"
-    ).value||
-    null;
+    ).value||null;
 
   loadCurrent();
 
 }
 
 
-/* =========================
-   宿題
-========================= */
+/* =========================================================
+   宿題追加
+========================================================= */
 
 function addTask(){
 
@@ -1403,6 +1433,7 @@ function addTask(){
 
 
   let t={
+
     id:
       crypto.randomUUID?.()||
       Date.now().toString(),
@@ -1412,6 +1443,7 @@ function addTask(){
     dates:[],
 
     targetOff:[]
+
   };
 
 
@@ -1435,6 +1467,10 @@ function addTask(){
 
 }
 
+
+/* =========================================================
+   宿題削除
+========================================================= */
 
 function deleteTask(){
 
@@ -1477,6 +1513,10 @@ function deleteTask(){
 }
 
 
+/* =========================================================
+   日付追加
+========================================================= */
+
 function addDate(){
 
   let t=task();
@@ -1487,25 +1527,34 @@ function addDate(){
     ).value;
 
 
-  if(!t)
+  if(!t){
+
     return alert(
       "先に宿題を追加してください。"
     );
 
+  }
 
-  if(!d)
+
+  if(!d){
+
     return alert(
       "日付を選択してください。"
     );
+
+  }
 
 
   t.dates=t.dates||[];
 
 
-  if(t.dates.includes(d))
+  if(t.dates.includes(d)){
+
     return alert(
       "その日はすでに登録されています。"
     );
+
+  }
 
 
   t.dates.push(d);
@@ -1520,6 +1569,10 @@ function addDate(){
 
 }
 
+
+/* =========================================================
+   日付削除
+========================================================= */
 
 function removeDate(d){
 
@@ -1541,11 +1594,9 @@ function removeDate(d){
       x=>x!==d
     );
 
-
   localStorage.removeItem(
     key(t.id,d)
   );
-
 
   saveTasks();
 
@@ -1556,7 +1607,6 @@ function removeDate(d){
       t.dates?.includes(today())
         ?today()
         :(t.dates?.at(-1)||"");
-
 
     data=
       date
@@ -1598,11 +1648,10 @@ function showUndo(d,t){
 
   box.className="notice";
 
-
   box.innerHTML=
     `🗑️ ${esc(d)} の提出日を取り消しました。 `+
-    `<button class="blue" style="margin-left:6px;padding:7px 10px" `+
-    `onclick="undoRemoveDate('${esc(d)}','${esc(t.id)}')">`+
+    `<button class="blue" style="margin-left:6px;padding:7px 10px"`+
+    ` onclick="undoRemoveDate('${esc(d)}','${esc(t.id)}')">`+
     `元に戻す</button>`;
 
 
@@ -1610,9 +1659,7 @@ function showUndo(d,t){
     .querySelector(".wrap")
     .insertBefore(
       box,
-      document.querySelector(
-        ".wrap"
-      ).children[0]
+      document.querySelector(".wrap").children[0]
     );
 
 
@@ -1638,7 +1685,6 @@ function undoRemoveDate(d,tid){
 
   if(!t.dates.includes(d))
     t.dates.push(d);
-
 
   t.dates.sort();
 
@@ -1678,6 +1724,10 @@ function undoRemoveDate(d,tid){
 }
 
 
+/* =========================================================
+   現在の宿題
+========================================================= */
+
 function loadCurrent(){
 
   let t=task();
@@ -1695,6 +1745,7 @@ function loadCurrent(){
         ?today()
         :(t.dates?.at(-1)||"");
 
+
     data=
       date
         ?load(taskId,date)
@@ -1711,6 +1762,10 @@ function loadCurrent(){
 
 }
 
+
+/* =========================================================
+   宿題情報
+========================================================= */
 
 function renderTaskInfo(){
 
@@ -1745,9 +1800,9 @@ function renderTaskInfo(){
     info.innerHTML=
       `<strong>${esc(t.name)}</strong><br>`+
       `<span class="small">`+
-      `${t.dates.includes(today())?
-        "📅 今日の提出日です":
-        "今日は提出日ではありません"}`+
+      `${t.dates.includes(today())`+
+        `?"📅 今日の提出日です"`+
+        `:"今日は提出日ではありません"}`+
       `</span>`;
 
   }
@@ -1772,8 +1827,8 @@ function renderTaskInfo(){
 
     e.innerHTML=
       `${esc(d)} `+
-      `<button class="date-cancel" `+
-      `onclick="removeDate('${esc(d)}')">`+
+      `<button class="date-cancel"`+
+      ` onclick="removeDate('${esc(d)}')">`+
       `キャンセル</button>`;
 
     box.appendChild(e);
@@ -1782,6 +1837,10 @@ function renderTaskInfo(){
 
 }
 
+
+/* =========================================================
+   提出対象
+========================================================= */
 
 function renderTargets(){
 
@@ -1808,9 +1867,9 @@ function renderTargets(){
 
 
     e.innerHTML=
-      `<input type="checkbox" `+
-      `${on?"checked":""} `+
-      `onchange="toggleTarget('${id}',this.checked)"> `+
+      `<input type="checkbox"`+
+      ` ${on?"checked":""}`+
+      ` onchange="toggleTarget('${id}',this.checked)"> `+
       `${id}`;
 
 
@@ -1824,6 +1883,9 @@ function renderTargets(){
 function toggleTarget(id,on){
 
   let t=task();
+
+  if(!t)return;
+
 
   t.targetOff=
     t.targetOff||[];
@@ -1840,13 +1902,8 @@ function toggleTarget(id,on){
 
   else{
 
-    if(
-      !t.targetOff.includes(id)
-    ){
-
+    if(!t.targetOff.includes(id))
       t.targetOff.push(id);
-
-    }
 
     delete data.submitted[id];
 
@@ -1855,11 +1912,7 @@ function toggleTarget(id,on){
 
   saveTasks();
 
-  save(
-    taskId,
-    date,
-    data
-  );
+  save(taskId,date,data);
 
   renderTargets();
 
@@ -1874,8 +1927,13 @@ function allTargets(on){
 
   let t=task();
 
+  if(!t)return;
+
+
   t.targetOff=
-    on?[]:ids();
+    on
+      ?[]
+      :ids();
 
 
   if(!on)
@@ -1884,11 +1942,7 @@ function allTargets(on){
 
   saveTasks();
 
-  save(
-    taskId,
-    date,
-    data
-  );
+  save(taskId,date,data);
 
   renderTargets();
 
@@ -1899,9 +1953,9 @@ function allTargets(on){
 }
 
 
-/* =========================
-   提出状況
-========================= */
+/* =========================================================
+   提出状況更新
+========================================================= */
 
 function update(){
 
@@ -2002,29 +2056,36 @@ function update(){
   ).textContent=
     !active
       ?"📅 提出日を登録してください"
-      :(rem.length
-        ?`🔴 あと${rem.length}人`
-        :"🎉 全員提出！！");
+      :(
+        rem.length
+          ?`🔴 あと${rem.length}人`
+          :"🎉 全員提出！！"
+      );
 
 
   document.getElementById(
     "remainingList"
   ).innerHTML=
-    rem
-      .map(
-        x=>`<span class="num">${x}</span>`
-      )
-      .join("");
+    rem.map(
+      x=>`<span class="num">${x}</span>`
+    ).join("");
 
 }
 
 
+/* =========================================================
+   欠席
+========================================================= */
+
 function registerAbsent(){
 
-  if(!task()||!date)
+  if(!task()||!date){
+
     return alert(
       "先に宿題の提出日を登録してください。"
     );
+
+  }
 
 
   let id=
@@ -2035,32 +2096,29 @@ function registerAbsent(){
     );
 
 
-  if(!id)
+  if(!id){
+
     return alert(
       "正しい番号を入力してください。"
     );
 
+  }
 
-  if(!target(id))
+
+  if(!target(id)){
+
     return alert(
       "提出対象外です。"
     );
 
-
-  if(
-    !data.absent.includes(id)
-  ){
-
-    data.absent.push(id);
-
   }
 
 
-  save(
-    taskId,
-    date,
-    data
-  );
+  if(!data.absent.includes(id))
+    data.absent.push(id);
+
+
+  save(taskId,date,data);
 
 
   document.getElementById(
@@ -2075,9 +2133,9 @@ function registerAbsent(){
 }
 
 
-/* =========================
+/* =========================================================
    QRスキャナー
-========================= */
+========================================================= */
 
 async function toggleScanner(){
 
@@ -2098,18 +2156,22 @@ async function startScanner(){
       await Html5Qrcode.getCameras();
 
 
-    if(!cameras.length)
+    if(!cameras.length){
+
       return alert(
         "カメラがありません。"
       );
+
+    }
 
 
     camIndex=
       Math.max(
         0,
         cameras.findIndex(
-          c=>/back|rear|environment/i
-            .test(c.label)
+          c=>
+            /back|rear|environment/i
+              .test(c.label)
         )
       );
 
@@ -2124,7 +2186,8 @@ async function startScanner(){
     console.error(e);
 
     alert(
-      "カメラを起動できませんでした。ブラウザのカメラ許可を確認してください。"
+      "カメラを起動できませんでした。"+
+      "ブラウザのカメラ許可を確認してください。"
     );
 
   }
@@ -2162,11 +2225,9 @@ async function startCam(cid){
       },
 
       aspectRatio:1
-
     },
 
     scanOK,
-
     scanFail
 
   );
@@ -2227,16 +2288,22 @@ async function stopScanner(){
 
 async function switchCamera(){
 
-  if(!running)
+  if(!running){
+
     return alert(
       "まずスキャンを開始してください。"
     );
 
+  }
 
-  if(cameras.length<2)
+
+  if(cameras.length<2){
+
     return alert(
       "切替可能なカメラがありません。"
     );
+
+  }
 
 
   camIndex=
@@ -2254,6 +2321,7 @@ async function switchCamera(){
 
 
   scanner=null;
+
 
   await startCam(
     cameras[camIndex].id
@@ -2297,6 +2365,7 @@ function scanOK(text){
 
 
   lastCode=text;
+
   lastTime=now;
 
 
@@ -2304,6 +2373,7 @@ function scanOK(text){
 
 
   lock=true;
+
 
   setTimeout(
     ()=>lock=false,
@@ -2328,8 +2398,7 @@ function scanOK(text){
 
     n.textContent="?";
 
-    m.textContent=
-      "❌ 無効なQR";
+    m.textContent="❌ 無効なQR";
 
     beep(220);
 
@@ -2378,11 +2447,13 @@ function scanOK(text){
 
 
   data.submitted[id]={
+
     time:
       new Date()
       .toLocaleTimeString(
         "ja-JP"
       )
+
   };
 
 
@@ -2406,20 +2477,30 @@ function scanOK(text){
 }
 
 
+/* =========================================================
+   音
+========================================================= */
+
 function audioCtx(){
 
-  if(!audio)
+  if(!audio){
+
     audio=
       new(
         window.AudioContext||
         window.webkitAudioContext
       )();
 
+  }
+
 
   if(
     audio.state==="suspended"
-  )
+  ){
+
     audio.resume();
+
+  }
 
 }
 
@@ -2427,6 +2508,7 @@ function audioCtx(){
 function beep(f){
 
   audioCtx();
+
 
   let o=
     audio.createOscillator();
@@ -2456,9 +2538,9 @@ function beep(f){
 }
 
 
-/* =========================
-   提出一覧
-========================= */
+/* =========================================================
+   提出状況一覧
+========================================================= */
 
 function columns(){
 
@@ -2500,8 +2582,11 @@ function cell(c,id){
   if(
     !target(id,c.t)||
     d.absent.includes(id)
-  )
+  ){
+
     return "—";
+
+  }
 
 
   return d.submitted[id]
@@ -2536,9 +2621,7 @@ function rate(id,cs){
 
 
   return n
-    ?Math.round(
-        s/n*100
-      )
+    ?Math.round(s/n*100)
     :null;
 
 }
@@ -2547,6 +2630,7 @@ function rate(id,cs){
 function renderMatrix(){
 
   let cs=columns();
+
 
   let box=
     document.getElementById(
@@ -2601,7 +2685,8 @@ function renderMatrix(){
 
 
       h+=
-        `<td class="${
+        `<td class="`+
+        `${
           v==="⭕"
             ?"circle"
             :v==="❌"
@@ -2613,7 +2698,8 @@ function renderMatrix(){
 
 
     h+=
-      `<td class="rate">${
+      `<td class="rate">`+
+      `${
         r===null
           ?"—"
           :r+"%"
@@ -2629,18 +2715,26 @@ function renderMatrix(){
 }
 
 
+/* =========================================================
+   CSV
+========================================================= */
+
 function exportCSV(){
 
   let cs=columns();
 
 
-  if(!cs.length)
+  if(!cs.length){
+
     return alert(
       "宿題の日付がありません。"
     );
 
+  }
+
 
   let rows=[
+
     [
       "出席番号",
       ...cs.map(
@@ -2648,6 +2742,7 @@ function exportCSV(){
       ),
       "提出率"
     ]
+
   ];
 
 
@@ -2658,6 +2753,7 @@ function exportCSV(){
 
 
     rows.push([
+
       id,
 
       ...cs.map(
@@ -2667,6 +2763,7 @@ function exportCSV(){
       r===null
         ?""
         :r+"%"
+
     ]);
 
   });
@@ -2679,8 +2776,7 @@ function exportCSV(){
           r.map(
             v=>
               `"${String(v)
-                .replace(/"/g,'""')
-              }"`
+                .replace(/"/g,'""')}"`
           ).join(",")
       )
       .join("\n");
@@ -2711,14 +2807,15 @@ function exportCSV(){
 
   a.click();
 
+
   URL.revokeObjectURL(u);
 
 }
 
 
-/* =====================================================
+/* =========================================================
    クラス設定
-===================================================== */
+========================================================= */
 
 function saveClass(){
 
@@ -2739,10 +2836,13 @@ function saveClass(){
     s>99||
     p<1||
     p>99
-  )
+  ){
+
     return alert(
       "設定値を確認してください。"
     );
+
+  }
 
 
   localStorage.setItem(
@@ -2766,19 +2866,70 @@ function saveClass(){
 }
 
 
-/* =====================================================
-   QRコード作成
-===================================================== */
-
-function makeQR(){
-
-  const grid=
-    document.getElementById(
-      "qrgrid"
-    );
+/* =========================================================
+   QRコード印刷
+========================================================= */
 
 
-  const perPage=
+/*
+  人数に応じたレイアウト
+
+  2人  → 2列 × 1行
+  3人  → 2列 × 2行
+  4人  → 2列 × 2行
+  5人  → 2列 × 3行
+  6人  → 2列 × 3行
+  7人  → 2列 × 4行
+  8人  → 2列 × 4行
+  9人  → 2列 × 5行
+ 10人  → 2列 × 5行
+
+*/
+
+function getQRLayout(n){
+
+  let rows=
+    Math.ceil(n/2);
+
+  let cols=2;
+
+  return{
+    rows,
+    cols
+  };
+
+}
+
+
+/*
+  行数に応じてQRコードの大きさを決める
+*/
+
+function getQRSize(rows){
+
+  const sizes={
+
+    1:"75mm",
+    2:"60mm",
+    3:"47mm",
+    4:"38mm",
+    5:"31mm"
+
+  };
+
+
+  return sizes[rows]||"31mm";
+
+}
+
+
+/*
+  何ページ必要か
+*/
+
+function getPageCount(){
+
+  let n=
     parseInt(
       document.getElementById(
         "qrPerPage"
@@ -2787,115 +2938,365 @@ function makeQR(){
     );
 
 
-  grid.innerHTML="";
+  return Math.ceil(
+    size()/n
+  );
+
+}
+
+
+/*
+  QR印刷情報
+*/
+
+function updateQRPageInfo(){
+
+  let n=
+    parseInt(
+      document.getElementById(
+        "qrPerPage"
+      ).value,
+      10
+    );
+
+
+  let pages=
+    Math.ceil(
+      size()/n
+    );
+
+
+  document.getElementById(
+    "qrPageInfo"
+  ).textContent=
+    `現在の学級人数 ${size()}人 → `+
+    `A4 ${n}人/枚 → `+
+    `${pages}ページ`;
+
+}
+
+
+/*
+  人数変更時
+*/
+
+function qrPerPageChanged(){
+
+  updateQRPageInfo();
+
+  makeQR();
+
+}
+
+
+/*
+  QRコードを1個生成
+*/
+
+function createSingleQR(container,text){
+
+  container.innerHTML="";
+
+
+  new QRCode(
+    container,
+    {
+      text:text,
+
+      width:220,
+
+      height:220,
+
+      correctLevel:
+        QRCode.CorrectLevel.H
+
+    }
+  );
 
 
   /*
-     児童をページごとに分割
+    QRCode.jsがcanvasとimgを
+    両方作った場合があるので、
+    canvasを優先して1個だけ残す。
   */
 
-  const allIds=ids();
+  const canvas=
+    container.querySelector(
+      "canvas"
+    );
+
+  const img=
+    container.querySelector(
+      "img"
+    );
 
 
-  for(
-    let start=0;
-    start<allIds.length;
-    start+=perPage
-  ){
+  if(canvas){
 
-    const pageIds=
-      allIds.slice(
-        start,
-        start+perPage
-      );
+    if(img)
+      img.remove();
 
+  }
 
-    /*
-       A4 1ページ
-    */
-
-    const page=
-      document.createElement(
-        "div"
-      );
-
-
-    page.className=
-      "qr-page";
-
-
-    page.dataset.count=
-      pageIds.length;
-
+  else if(img){
 
     /*
-       各QRコード
+      canvasが無い環境では
+      imgを残す
     */
 
-    pageIds.forEach(id=>{
-
-      const e=
-        document.createElement(
-          "div"
-        );
-
-
-      e.className="qr";
-
-
-      e.innerHTML=
-        `
-        <strong>${id}番</strong>
-        <div class="qrcode"></div>
-        `;
-
-
-      page.appendChild(e);
-
-
-      new QRCode(
-        e.querySelector(
-          ".qrcode"
-        ),
-        {
-          text:
-            prefix()+id,
-
-          width:220,
-
-          height:220,
-
-          correctLevel:
-            QRCode.CorrectLevel.H
-        }
-      );
-
-    });
-
-
-    grid.appendChild(page);
+    img.style.display=
+      "block";
 
   }
 
 }
 
 
-/* =====================================================
-   QRコード印刷
-===================================================== */
+/*
+  QRコード作成
+*/
 
-function printQR(){
+function makeQR(){
 
-  const grid=
+  let grid=
     document.getElementById(
       "qrgrid"
     );
 
 
+  grid.innerHTML="";
+
+
+  let perPage=
+    parseInt(
+      document.getElementById(
+        "qrPerPage"
+      ).value,
+      10
+    );
+
+
+  let allIds=ids();
+
+
+  let pageCount=
+    Math.ceil(
+      allIds.length/perPage
+    );
+
+
+  updateQRPageInfo();
+
+
+  for(
+    let page=0;
+    page<pageCount;
+    page++
+  ){
+
+    let pageBox=
+      document.createElement(
+        "div"
+      );
+
+    pageBox.className=
+      "qr-page";
+
+
+    let title=
+      document.createElement(
+        "div"
+      );
+
+    title.className=
+      "qr-page-title";
+
+    title.textContent=
+      `QRコード ${page+1} / ${pageCount}`;
+
+    pageBox.appendChild(title);
+
+
+    let pageGrid=
+      document.createElement(
+        "div"
+      );
+
+    pageGrid.className=
+      "qr-grid";
+
+
+    let currentIds=
+      allIds.slice(
+        page*perPage,
+        (page+1)*perPage
+      );
+
+
+    let layout=
+      getQRLayout(
+        currentIds.length
+      );
+
+
+    let qrSize=
+      getQRSize(
+        layout.rows
+      );
+
+
+    /*
+      CSS grid設定
+    */
+
+    pageGrid.style.gridTemplateColumns=
+      `repeat(${layout.cols},1fr)`;
+
+
+    pageGrid.style.gridTemplateRows=
+      `repeat(${layout.rows},1fr)`;
+
+
+    /*
+      QRサイズ
+    */
+
+    pageGrid.style.setProperty(
+      "--qr-size",
+      qrSize
+    );
+
+
+    /*
+      実際のQR
+    */
+
+    currentIds.forEach(id=>{
+
+      let item=
+        document.createElement(
+          "div"
+        );
+
+      item.className=
+        "qr-item";
+
+
+      let number=
+        document.createElement(
+          "div"
+        );
+
+      number.className=
+        "qr-number";
+
+      number.textContent=
+        `${id}番`;
+
+
+      let qr=
+        document.createElement(
+          "div"
+        );
+
+      qr.className=
+        "qrcode";
+
+
+      item.appendChild(
+        number
+      );
+
+      item.appendChild(
+        qr
+      );
+
+      pageGrid.appendChild(
+        item
+      );
+
+
+      /*
+        QRの内容は
+        クラス番号＋出席番号
+
+        例：
+        クラス31
+        01番
+        → 3101
+      */
+
+      createSingleQR(
+        qr,
+        prefix()+id
+      );
+
+    });
+
+
+    /*
+      奇数人数の場合、
+      最後に空白セルを追加
+
+      例：5人/枚
+      □ □
+      □ □
+      □ ■
+
+      ■は空白
+    */
+
+    while(
+      pageGrid.children.length<
+      layout.rows*layout.cols
+    ){
+
+      let empty=
+        document.createElement(
+          "div"
+        );
+
+      empty.className=
+        "qr-item empty";
+
+      pageGrid.appendChild(
+        empty
+      );
+
+    }
+
+
+    pageBox.appendChild(
+      pageGrid
+    );
+
+
+    grid.appendChild(
+      pageBox
+    );
+
+  }
+
+}
+
+
+/*
+  印刷
+*/
+
+function printQR(){
+
   /*
-     まだQRコードがない場合は
-     先に作成
+    QRコードがまだ作られていない場合は
+    先に作る
   */
+
+  let grid=
+    document.getElementById(
+      "qrgrid"
+    );
+
 
   if(!grid.children.length){
 
@@ -2905,7 +3306,9 @@ function printQR(){
 
 
   /*
-     QRコード生成完了後に印刷
+    QRコード作成直後に印刷すると、
+    ブラウザによっては描画前になるので
+    少し待つ
   */
 
   setTimeout(()=>{
@@ -2916,6 +3319,10 @@ function printQR(){
 
 }
 
+
+/* =========================================================
+   画面読み込み
+========================================================= */
 
 window.addEventListener(
   "load",
