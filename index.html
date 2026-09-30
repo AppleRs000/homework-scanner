@@ -97,9 +97,19 @@ button{border:0;border-radius:10px;padding:12px 16px;font-weight:bold}.blue{back
 <div id="matrix" style="margin-top:10px"></div>
 </div>
 
-<div class="card">
+<div class="card qr-card">
 <h2>🔳 QRコード作成</h2>
-<button class="blue" onclick="makeQR()">QRコードを作成</button>
+
+<div class="row">
+  <button class="blue" onclick="makeQR()">QRコードを作成</button>
+  <button class="green" onclick="printQR()">🖨️ A4 6枚で印刷</button>
+</div>
+
+<div class="small" style="margin-top:8px">
+1ページに6人分（2列×3行）で印刷します。<br>
+37人なら7ページになります。
+</div>
+
 <div id="qrgrid" class="qrgrid" style="margin-top:12px"></div>
 </div>
 
