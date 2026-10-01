@@ -1,0 +1,3513 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#2563eb">
+<link rel="manifest" href="./manifest.webmanifest">
+
+<title>宿題提出スキャナー</title>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style>
+
+/* =========================================================
+   基本
+========================================================= */
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  background:#f2f4f7;
+  color:#222;
+  font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP",sans-serif;
+}
+
+header{
+  background:#2563eb;
+  color:#fff;
+  text-align:center;
+  padding:14px;
+  font-size:21px;
+  font-weight:bold;
+}
+
+.wrap{
+  max-width:1100px;
+  margin:auto;
+  padding:10px;
+}
+
+.card,
+.status,
+.last{
+  background:#fff;
+  border-radius:16px;
+  padding:16px;
+  margin-bottom:10px;
+}
+
+.card h2{
+  margin:0 0 12px;
+}
+
+button,
+input,
+select{
+  font-size:17px;
+}
+
+input,
+select{
+  width:100%;
+  padding:12px;
+  border:1px solid #ccc;
+  border-radius:10px;
+  margin-bottom:8px;
+}
+
+button{
+  border:0;
+  border-radius:10px;
+  padding:12px 16px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.blue{
+  background:#2563eb;
+  color:#fff;
+}
+
+.green{
+  background:#16a34a;
+  color:#fff;
+}
+
+.gray{
+  background:#64748b;
+  color:#fff;
+}
+
+.red{
+  background:#dc2626;
+  color:#fff;
+}
+
+.row{
+  display:flex;
+  gap:8px;
+}
+
+.row>*{
+  flex:1;
+}
+
+
+/* =========================================================
+   スキャナー
+========================================================= */
+
+.scan{
+  width:100%;
+  background:#16a34a;
+  color:#fff;
+  font-size:23px;
+  padding:18px;
+  margin-bottom:8px;
+}
+
+.scan.stop{
+  background:#dc2626;
+}
+
+.cam{
+  width:100%;
+  background:#2563eb;
+  color:#fff;
+  font-size:18px;
+  padding:14px;
+  margin-bottom:10px;
+}
+
+.reader{
+  background:#000;
+  border-radius:16px;
+  overflow:hidden;
+  margin-bottom:10px;
+}
+
+.reader #reader{
+  width:100%;
+  min-height:45vh;
+}
+
+.reader video{
+  width:100%!important;
+  height:auto!important;
+}
+
+
+/* =========================================================
+   最終読み取り
+========================================================= */
+
+.last{
+  text-align:center;
+}
+
+.last small{
+  color:#666;
+}
+
+.lastno{
+  font-size:70px;
+  font-weight:900;
+  line-height:1;
+}
+
+.lastmsg{
+  font-size:22px;
+  font-weight:bold;
+}
+
+
+/* =========================================================
+   提出状況
+========================================================= */
+
+.count{
+  text-align:center;
+  font-size:58px;
+  font-weight:900;
+}
+
+.progress{
+  height:22px;
+  background:#ddd;
+  border-radius:99px;
+  overflow:hidden;
+}
+
+.bar{
+  height:100%;
+  width:0;
+  background:#22c55e;
+}
+
+.remaining{
+  margin-top:12px;
+  background:#fff1f2;
+  border-radius:12px;
+  padding:12px;
+  text-align:center;
+}
+
+.remaining.ok{
+  background:#dcfce7;
+}
+
+.remaining-title{
+  font-size:22px;
+  font-weight:bold;
+}
+
+.nums{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  justify-content:center;
+  margin-top:8px;
+}
+
+.num{
+  border:2px solid #f87171;
+  background:#fff;
+  border-radius:9px;
+  padding:5px 9px;
+  font-weight:bold;
+}
+
+
+/* =========================================================
+   提出対象
+========================================================= */
+
+.targets{
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  gap:6px;
+}
+
+.target{
+  padding:8px 2px;
+  text-align:center;
+  border:2px solid #ddd;
+  border-radius:9px;
+}
+
+.target.off{
+  background:#eee;
+  color:#999;
+}
+
+
+/* =========================================================
+   その他
+========================================================= */
+
+.info{
+  background:#eff6ff;
+  border-radius:10px;
+  padding:10px;
+}
+
+.dates{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:8px;
+}
+
+.date{
+  background:#dbeafe;
+  color:#1d4ed8;
+  padding:5px 8px;
+  border-radius:8px;
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+}
+
+.date-cancel{
+  background:#fff;
+  color:#1d4ed8;
+  padding:2px 7px;
+  border:1px solid #93c5fd;
+  border-radius:7px;
+  font-size:14px;
+}
+
+.empty-task{
+  background:#f8fafc;
+  border:1px dashed #cbd5e1;
+  border-radius:10px;
+  padding:12px;
+  color:#64748b;
+}
+
+.notice{
+  background:#fefce8;
+  border:1px solid #fde68a;
+  border-radius:12px;
+  padding:12px;
+  margin-bottom:10px;
+}
+
+.small{
+  font-size:13px;
+  color:#666;
+}
+
+
+/* =========================================================
+   提出状況一覧
+========================================================= */
+
+.tablewrap{
+  overflow:auto;
+  border:1px solid #ddd;
+  border-radius:10px;
+}
+
+.matrix{
+  border-collapse:separate;
+  border-spacing:0;
+  min-width:650px;
+  width:100%;
+  font-size:14px;
+}
+
+.matrix th,
+.matrix td{
+  padding:7px 9px;
+  text-align:center;
+  border-right:1px solid #ddd;
+  border-bottom:1px solid #ddd;
+  white-space:nowrap;
+}
+
+.matrix th{
+  background:#f1f5f9;
+  position:sticky;
+  top:0;
+  z-index:2;
+}
+
+.matrix th:first-child,
+.matrix td:first-child{
+  position:sticky;
+  left:0;
+  z-index:3;
+  background:#fff;
+}
+
+.matrix th:first-child{
+  background:#e2e8f0;
+}
+
+.circle,
+.cross{
+  font-size:18px;
+}
+
+.rate{
+  font-weight:bold;
+}
+
+
+/* =========================================================
+   QRコード作成画面
+========================================================= */
+
+.qr-settings{
+  background:#eff6ff;
+  border-radius:12px;
+  padding:12px;
+  margin-bottom:12px;
+}
+
+.qr-settings-title{
+  font-weight:bold;
+  margin-bottom:8px;
+}
+
+.qr-page{
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:12px;
+  padding:12px;
+  margin-top:12px;
+}
+
+.qr-page-title{
+  font-weight:bold;
+  font-size:16px;
+  margin-bottom:8px;
+}
+
+.qr-grid{
+  display:grid;
+  gap:10px;
+}
+
+.qr-item{
+  border:2px solid #333;
+  border-radius:10px;
+  background:#fff;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:10px;
+  min-width:0;
+  min-height:0;
+}
+
+.qr-number{
+  font-weight:900;
+  font-size:20px;
+  margin-bottom:6px;
+}
+
+.qrcode{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  min-height:0;
+}
+
+/*
+  QRCode.jsがcanvasとimgの両方を作る環境があるため、
+  JS側でも片方だけ残す。
+*/
+.qrcode canvas,
+.qrcode img{
+  display:block;
+  width:var(--qr-size,55mm)!important;
+  height:var(--qr-size,55mm)!important;
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+}
+
+
+
+.drill-panel{border:2px solid #7c3aed;}
+.drill-status{margin-top:10px;}
+.drill-active{background:#7c3aed!important;color:#fff!important;}
+.drill-closed{background:#f1f5f9;border-radius:10px;padding:10px;color:#64748b;}
+
+/* =========================================================
+   スマホ
+========================================================= */
+
+@media(max-width:600px){
+
+  .targets{
+    grid-template-columns:repeat(4,1fr);
+  }
+
+  .lastno{
+    font-size:62px;
+  }
+
+  .count{
+    font-size:50px;
+  }
+
+  .row{
+    flex-direction:column;
+  }
+
+}
+
+
+/* =========================================================
+   印刷
+========================================================= */
+
+@media print{
+
+  /*
+    A4縦
+    ブラウザの印刷設定で「倍率100%」を基本にする
+  */
+  @page{
+    size:A4 portrait;
+    margin:10mm;
+  }
+
+  html,
+  body{
+    width:210mm;
+    margin:0;
+    padding:0;
+    background:#fff!important;
+  }
+
+  body{
+    color:#000;
+  }
+
+  /*
+    印刷時はQRカード以外を全部消す
+  */
+  body > header,
+  .wrap > *:not(.qr-card){
+    display:none!important;
+  }
+
+  .qr-card{
+    display:block!important;
+    margin:0!important;
+    padding:0!important;
+    background:#fff!important;
+    border:0!important;
+    box-shadow:none!important;
+  }
+
+  .qr-card > h2,
+  .qr-card > .row,
+  .qr-card > .small,
+  .qr-settings{
+    display:none!important;
+  }
+
+  /*
+    A4の印刷可能領域
+    210 - 左右20 = 190mm
+    297 - 上下20 = 277mm
+  */
+  .qr-page{
+    width:190mm;
+    height:277mm;
+
+    margin:0;
+    padding:0;
+
+    border:0;
+    border-radius:0;
+
+    background:#fff;
+
+    break-after:page;
+    page-break-after:always;
+
+    overflow:hidden;
+  }
+
+  .qr-page:last-child{
+    break-after:auto;
+    page-break-after:auto;
+  }
+
+  .qr-page-title{
+    display:none;
+  }
+
+  /*
+    gridの列数・行数はJSから設定
+  */
+  .qr-grid{
+    width:190mm;
+    height:277mm;
+
+    display:grid!important;
+
+    gap:4mm!important;
+
+    margin:0!important;
+    padding:0!important;
+  }
+
+  .qr-item{
+    min-width:0!important;
+    min-height:0!important;
+
+    width:auto!important;
+    height:auto!important;
+
+    border:0.5mm solid #333!important;
+    border-radius:3mm!important;
+
+    padding:4mm!important;
+
+    break-inside:avoid;
+    page-break-inside:avoid;
+
+    overflow:hidden;
+  }
+
+  .qr-number{
+    font-size:16pt;
+    line-height:1.1;
+    margin-bottom:3mm;
+  }
+
+  .qrcode{
+    width:100%!important;
+    height:auto!important;
+    flex:1;
+    min-height:0!important;
+  }
+
+  .qrcode canvas,
+  .qrcode img{
+    display:block!important;
+
+    width:var(--qr-size)!important;
+    height:var(--qr-size)!important;
+
+    max-width:100%!important;
+    max-height:100%!important;
+
+    object-fit:contain!important;
+  }
+
+  /*
+    空白セルは枠も消す
+  */
+  .qr-item.empty{
+    border:0!important;
+    background:transparent!important;
+  }
+
+}
+
+
+/* =========================================================
+   印刷時：QRコード二重表示防止
+========================================================= */
+
+.qrcode img{
+  display:none;
+}
+
+</style>
+</head>
+
+
+<body>
+
+<header>📚 宿題提出スキャナー</header>
+
+<div class="wrap">
+
+<div class="notice">
+<strong>今回の変更</strong><br>
+提出記録は日付ごとに別ファイルにするのではなく、端末内に累積保存します。<br>
+「提出状況一覧」は <strong>行＝児童、列＝宿題（日付）</strong> です。提出＝⭕、未提出＝❌、対象外・欠席＝—。
+</div>
+
+
+<!-- =====================================================
+     スキャン
+===================================================== -->
+
+<button id="scanBtn" class="scan" onclick="toggleScanner()">
+🔊 スキャン開始
+</button>
+
+<button id="camBtn" class="cam" onclick="switchCamera()">
+🤳 カメラ切替
+</button>
+
+<div class="reader">
+  <div id="reader"></div>
+</div>
+
+
+<div class="last">
+
+<small>最後に読み取った番号</small>
+
+<div id="lastNo" class="lastno">
+--
+</div>
+
+<div id="lastMsg" class="lastmsg">
+QRコードを読み取ってください
+</div>
+
+</div>
+
+
+<!-- =====================================================
+     今日の提出状況
+===================================================== -->
+
+<div id="drillPanel" class="card drill-panel">
+  <h2>📖 ドリル回収</h2>
+  <div class="small" style="margin-bottom:8px">
+    宿題とは別に、必要なときだけドリルの回収状況を記録します。名前は管理せず、出席番号だけで管理します。
+  </div>
+
+  <div class="row">
+    <button class="blue" onclick="newDrillCollection()">＋ 新しい回収</button>
+    <button class="gray" onclick="toggleDrillMode()" id="drillModeBtn">📖 ドリルモードにする</button>
+  </div>
+
+  <select id="drillSelect" onchange="changeDrill()" style="margin-top:8px"></select>
+  <div id="drillInfo" class="info"></div>
+
+  <div id="drillControls" style="margin-top:8px"></div>
+
+  <div id="drillStatus" class="drill-status" style="display:none">
+    <div id="drillCount" class="count">0 / 0</div>
+    <div style="text-align:center;color:#666">今回の回収状況</div>
+    <div class="progress"><div id="drillBar" class="bar"></div></div>
+    <div id="drillRemaining" class="remaining">
+      <div id="drillRemainingTitle" class="remaining-title"></div>
+      <div id="drillRemainingList" class="nums"></div>
+    </div>
+  </div>
+</div>
+
+<div id="homeworkStatus" class="status">
+
+<div id="count" class="count">
+0 / 0
+</div>
+
+<div style="text-align:center;color:#666">
+今日の提出状況
+</div>
+
+<div class="progress">
+  <div id="bar" class="bar"></div>
+</div>
+
+<div id="absentInfo"
+     class="small"
+     style="text-align:center;margin-top:7px">
+</div>
+
+<div id="excludeInfo"
+     class="small"
+     style="text-align:center">
+</div>
+
+<div id="remaining" class="remaining">
+
+<div id="remainingTitle"
+     class="remaining-title">
+</div>
+
+<div id="remainingList"
+     class="nums">
+</div>
+
+</div>
+
+</div>
+
+
+<!-- =====================================================
+     今日の宿題
+===================================================== -->
+
+<div class="card">
+
+<h2>📝 今日の宿題</h2>
+
+<select id="taskSelect" onchange="changeTask()"></select>
+
+<div id="taskInfo" class="info"></div>
+
+<div class="row">
+
+<button class="blue" onclick="addTask()">
+＋ 宿題追加
+</button>
+
+<button class="red" onclick="deleteTask()">
+🗑 宿題を削除
+</button>
+
+</div>
+
+</div>
+
+
+<!-- =====================================================
+     宿題の日付
+===================================================== -->
+
+<div class="card">
+
+<h2>📅 宿題の日付設定</h2>
+
+<div class="small" style="margin-bottom:8px">
+ここで登録した日だけ、提出状況一覧に表示されます。
+</div>
+
+<input id="taskDate" type="date">
+
+<button class="green" onclick="addDate()">
+＋ この日を追加
+</button>
+
+<div id="dates" class="dates"></div>
+
+</div>
+
+
+<!-- =====================================================
+     提出対象
+===================================================== -->
+
+<div class="card">
+
+<h2>👦 提出対象</h2>
+
+<div style="margin-bottom:8px">
+
+<button class="green" onclick="allTargets(true)">
+全員ON
+</button>
+
+<button class="gray" onclick="allTargets(false)">
+全員OFF
+</button>
+
+</div>
+
+<div id="targets" class="targets"></div>
+
+<div class="small">
+OFFにした児童は、その宿題の日の提出率計算から除外します。
+</div>
+
+</div>
+
+
+<!-- =====================================================
+     欠席
+===================================================== -->
+
+<div class="card">
+
+<h2>🚫 欠席登録</h2>
+
+<input
+  id="absentNo"
+  type="number"
+  inputmode="numeric"
+  placeholder="出席番号"
+>
+
+<button class="gray" onclick="registerAbsent()">
+欠席として登録
+</button>
+
+</div>
+
+
+<!-- =====================================================
+     クラス設定
+===================================================== -->
+
+<div class="card">
+
+<h2>⚙️ クラス設定</h2>
+
+<label>クラス番号</label>
+
+<input
+  id="prefix"
+  type="number"
+  min="1"
+  max="99"
+>
+
+<label>学級人数</label>
+
+<input
+  id="size"
+  type="number"
+  min="1"
+  max="99"
+>
+
+<button class="green" onclick="saveClass()">
+💾 設定を保存
+</button>
+
+</div>
+
+
+<!-- =====================================================
+     提出状況一覧
+===================================================== -->
+
+<div class="card">
+
+<h2>📊 提出状況一覧</h2>
+
+<div class="small">
+⭕＝提出　❌＝未提出　—＝対象外・欠席　／　最後の列は累積提出率
+</div>
+
+<div class="row" style="margin-top:8px">
+
+<button class="blue" onclick="renderMatrix()">
+🔄 更新
+</button>
+
+<button class="green" onclick="exportCSV()">
+📥 CSV保存
+</button>
+
+</div>
+
+<div id="matrix" style="margin-top:10px"></div>
+
+</div>
+
+
+<!-- =====================================================
+     QRコード作成
+===================================================== -->
+
+<div class="card qr-card">
+
+<h2>🔳 QRコード作成</h2>
+
+
+<div class="qr-settings">
+
+<div class="qr-settings-title">
+📄 A4 1枚あたりの人数
+</div>
+
+<select id="qrPerPage" onchange="qrPerPageChanged()">
+
+<option value="2">2人 / 枚</option>
+<option value="3">3人 / 枚</option>
+<option value="4">4人 / 枚</option>
+<option value="5">5人 / 枚</option>
+<option value="6" selected>6人 / 枚</option>
+<option value="7">7人 / 枚</option>
+<option value="8">8人 / 枚</option>
+<option value="9">9人 / 枚</option>
+<option value="10">10人 / 枚</option>
+
+</select>
+
+<div id="qrPageInfo" class="small">
+</div>
+
+</div>
+
+
+<div class="row">
+
+<button class="blue" onclick="makeQR()">
+🔳 QRコードを作成
+</button>
+
+<button class="green" onclick="printQR()">
+🖨️ 印刷
+</button>
+
+</div>
+
+
+<div class="small" style="margin-top:8px">
+
+A4 1枚あたりの人数を選ぶと、
+人数に合わせてQRコードの大きさと配置を自動調整します。
+
+</div>
+
+
+<div id="qrgrid" style="margin-top:12px"></div>
+
+</div>
+
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   保存キー
+========================================================= */
+
+const K={
+  tasks:"hs_tasks_v2",
+  data:"hs_data_v2_",
+  size:"hs_size_v2",
+  prefix:"hs_prefix_v2"
+};
+
+const OLD_K={
+  tasks:"hs_tasks_v1",
+  data:"hs_data_v1_",
+  size:"hs_size_v1",
+  prefix:"hs_prefix_v1"
+};
+
+
+/* =========================================================
+   状態
+========================================================= */
+
+let tasks=[];
+let taskId=null;
+
+let data={
+  submitted:{},
+  absent:[]
+};
+
+let date="";
+
+let scanner=null;
+let running=false;
+
+let cameras=[];
+let camIndex=0;
+
+let lock=false;
+let lastCode="";
+let lastTime=0;
+
+let audio=null;
+
+/* =========================================================
+   ドリル回収
+========================================================= */
+const DRILL_KEY="hs_drills_v1";
+let drills=[];
+let drillId=null;
+let drillMode=false;
+
+function loadDrills(){
+  try{ drills=JSON.parse(localStorage.getItem(DRILL_KEY)||"[]")||[]; }catch{ drills=[]; }
+}
+
+function saveDrills(){
+  localStorage.setItem(DRILL_KEY,JSON.stringify(drills));
+}
+
+function drill(){
+  return drills.find(x=>x.id===drillId)||null;
+}
+
+function newDrillCollection(){
+  const name=prompt("今回回収するドリルの名前を入力してください", "漢字ドリル");
+  if(!name||!name.trim())return;
+  const d={
+    id:crypto.randomUUID?.()||Date.now().toString(),
+    name:name.trim(),
+    date:today(),
+    submitted:{},
+    closed:false
+  };
+  drills.unshift(d);
+  drillId=d.id;
+  saveDrills();
+  drillMode=true;
+  renderDrills();
+  updateDrillUI();
+  alert(`「${d.name}」の回収を開始しました。\n\n同じQRコードを読み取ってください。`);
+}
+
+function changeDrill(){
+  drillId=document.getElementById("drillSelect").value||null;
+  renderDrills();
+  updateDrillUI();
+}
+
+function toggleDrillMode(){
+  if(!drill()){
+    return alert("先に「＋ 新しい回収」でドリル回収を開始してください。");
+  }
+  drillMode=!drillMode;
+  updateDrillUI();
+}
+
+function endDrillCollection(){
+  const d=drill();
+  if(!d)return;
+  if(!confirm(`「${d.name}」の回収を終了しますか？\n\n終了後も記録は確認できます。`))return;
+  d.closed=true;
+  saveDrills();
+  drillMode=false;
+  renderDrills();
+  updateDrillUI();
+}
+
+function deleteDrillCollection(){
+  const d=drill();
+  if(!d)return;
+  if(!confirm(`「${d.name}」の回収記録を削除しますか？\n\nこの記録は元に戻せません。`))return;
+  drills=drills.filter(x=>x.id!==drillId);
+  drillId=drills[0]?.id||null;
+  saveDrills();
+  renderDrills();
+  updateDrillUI();
+}
+
+function renderDrills(){
+  const s=document.getElementById("drillSelect");
+  if(!s)return;
+  s.innerHTML="";
+  if(!drills.length){
+    const o=document.createElement("option");
+    o.value=""; o.textContent="回収記録がありません";
+    s.appendChild(o); s.disabled=true;
+    document.getElementById("drillInfo").innerHTML='<div class="empty-task">「＋ 新しい回収」から回収を開始してください。</div>';
+    document.getElementById("drillControls").innerHTML="";
+    return;
+  }
+  s.disabled=false;
+  drills.forEach(d=>{
+    const o=document.createElement("option");
+    o.value=d.id;
+    o.textContent=`${d.date}　${d.name}${d.closed?"（終了）":"（回収中）"}`;
+    s.appendChild(o);
+  });
+  s.value=drillId||drills[0].id;
+  drillId=s.value;
+
+  const d=drill();
+  const submitted=Object.keys(d.submitted||{}).length;
+  const remaining=ids().filter(id=>!d.submitted[id]);
+  document.getElementById("drillInfo").innerHTML=
+    `<strong>${esc(d.name)}</strong><br><span class="small">📅 ${esc(d.date)}　${d.closed?"回収終了":"回収中"}</span>`;
+  document.getElementById("drillControls").innerHTML=d.closed
+    ?`<div class="drill-closed">この回収は終了しています。</div><div class="row" style="margin-top:8px"><button class="red" onclick="deleteDrillCollection()">🗑 この記録を削除</button></div>`
+    :`<div class="row"><button class="green drill-active" onclick="toggleDrillMode()">${drillMode?"📝 宿題モードに戻す":"📖 ドリルモードにする"}</button><button class="gray" onclick="endDrillCollection()">回収終了</button></div>`;
+
+  document.getElementById("drillCount").textContent=`${submitted} / ${ids().length}`;
+  document.getElementById("drillBar").style.width=(ids().length?submitted/ids().length*100:0)+"%";
+  document.getElementById("drillRemainingTitle").textContent=remaining.length?`🔴 未提出 ${remaining.length}人`:`🎉 全員提出！！`;
+  document.getElementById("drillRemainingList").innerHTML=remaining.map(id=>`<span class="num">${id}</span>`).join("");
+  document.getElementById("drillRemaining").classList.toggle("ok",remaining.length===0);
+}
+
+function updateDrillUI(){
+  const panel=document.getElementById("drillPanel");
+  const status=document.getElementById("drillStatus");
+  const homework=document.getElementById("homeworkStatus");
+  const btn=document.getElementById("drillModeBtn");
+  const active=!!drill()&&drillMode&&!drill()?.closed;
+  status.style.display=drill()?"block":"none";
+  homework.style.display=active?"none":"block";
+  btn.textContent=active?"📝 宿題モードにする":"📖 ドリルモードにする";
+  btn.classList.toggle("drill-active",active);
+  renderDrills();
+}
+
+function drillScan(text){
+  const d=drill();
+  if(!d||d.closed||!drillMode)return false;
+  const id=idOf(text);
+  const n=document.getElementById("lastNo");
+  const m=document.getElementById("lastMsg");
+  if(!id){ n.textContent="?"; m.textContent="❌ 無効なQR"; beep(220); return true; }
+  n.textContent=id;
+  if(d.submitted[id]){ m.textContent="⚠️ すでに提出済み"; beep(440); return true; }
+  d.submitted[id]={time:new Date().toLocaleTimeString("ja-JP")};
+  saveDrills();
+  m.textContent="✅ ドリル提出済み！";
+  beep(880);
+  renderDrills();
+  updateDrillUI();
+  return true;
+}
+
+
+
+/* =========================================================
+   基本関数
+========================================================= */
+
+const today=()=>{
+
+  let d=new Date();
+
+  let m=String(d.getMonth()+1).padStart(2,"0");
+  let day=String(d.getDate()).padStart(2,"0");
+
+  return `${d.getFullYear()}-${m}-${day}`;
+};
+
+
+const size=()=>{
+
+  return parseInt(
+    localStorage.getItem(K.size)||"37",
+    10
+  );
+
+};
+
+
+const prefix=()=>{
+
+  return String(
+    localStorage.getItem(K.prefix)||"31"
+  ).padStart(2,"0");
+
+};
+
+
+const ids=()=>{
+
+  return Array.from(
+    {length:size()},
+    (_,i)=>String(i+1).padStart(2,"0")
+  );
+
+};
+
+
+const idOf=v=>{
+
+  v=String(v)
+    .trim()
+    .replace(/[０-９]/g,s=>
+      String.fromCharCode(
+        s.charCodeAt(0)-65248
+      )
+    );
+
+  if(!/^\d+$/.test(v))return null;
+
+  let n=
+    v.length===4 &&
+    v.slice(0,2)===prefix()
+      ?+v.slice(2)
+      :+v;
+
+  return n>=1&&n<=size()
+    ?String(n).padStart(2,"0")
+    :null;
+
+};
+
+
+const esc=v=>
+  String(v)
+  .replace(/&/g,"&amp;")
+  .replace(/</g,"&lt;")
+  .replace(/>/g,"&gt;")
+  .replace(/"/g,"&quot;");
+
+
+const task=()=>
+  tasks.find(t=>t.id===taskId);
+
+
+const key=(tid,d)=>
+  K.data+tid+"_"+d;
+
+
+function empty(){
+
+  return{
+    submitted:{},
+    absent:[]
+  };
+
+}
+
+
+function load(tid,d){
+
+  try{
+
+    let x=JSON.parse(
+      localStorage.getItem(key(tid,d))||"null"
+    );
+
+    return x
+      ?{
+          submitted:x.submitted||{},
+          absent:x.absent||[]
+        }
+      :empty();
+
+  }catch{
+
+    return empty();
+
+  }
+
+}
+
+
+function save(tid,d,x){
+
+  localStorage.setItem(
+    key(tid,d),
+    JSON.stringify(x)
+  );
+
+}
+
+
+function saveTasks(){
+
+  localStorage.setItem(
+    K.tasks,
+    JSON.stringify(tasks)
+  );
+
+}
+
+
+function target(id,t=task()){
+
+  return !(t?.targetOff||[]).includes(id);
+
+}
+
+
+/* =========================================================
+   旧データ移行
+========================================================= */
+
+function migrateOldData(){
+
+  const hasNew=
+    localStorage.getItem(K.tasks);
+
+  const oldRaw=
+    localStorage.getItem(OLD_K.tasks);
+
+  if(hasNew||!oldRaw)return;
+
+  try{
+
+    let oldTasks=
+      JSON.parse(oldRaw)||[];
+
+    oldTasks=
+      oldTasks.filter(t=>{
+
+        if(
+          t.name!=="今日の宿題"||
+          !Array.isArray(t.dates)||
+          t.dates.length!==1||
+          t.dates[0]!==today()
+        ){
+          return true;
+        }
+
+        const x=
+          loadOld(t.id,t.dates[0]);
+
+        return(
+          Object.keys(x.submitted||{}).length>0||
+          (x.absent||[]).length>0
+        );
+
+      });
+
+
+    localStorage.setItem(
+      K.tasks,
+      JSON.stringify(oldTasks)
+    );
+
+
+    for(
+      let i=0;
+      i<localStorage.length;
+      i++
+    ){
+
+      const k=
+        localStorage.key(i);
+
+      if(
+        !k||
+        !k.startsWith(OLD_K.data)
+      )continue;
+
+      const nk=
+        K.data+
+        k.slice(OLD_K.data.length);
+
+      if(!localStorage.getItem(nk)){
+
+        localStorage.setItem(
+          nk,
+          localStorage.getItem(k)
+        );
+
+      }
+
+    }
+
+
+    const oldSize=
+      localStorage.getItem(OLD_K.size);
+
+    const oldPrefix=
+      localStorage.getItem(OLD_K.prefix);
+
+
+    if(oldSize){
+
+      localStorage.setItem(
+        K.size,
+        oldSize
+      );
+
+    }
+
+
+    if(oldPrefix){
+
+      localStorage.setItem(
+        K.prefix,
+        oldPrefix
+      );
+
+    }
+
+
+  }catch(e){
+
+    console.error(
+      "移行エラー",
+      e
+    );
+
+  }
+
+}
+
+
+function loadOld(tid,d){
+
+  try{
+
+    let x=JSON.parse(
+      localStorage.getItem(
+        OLD_K.data+tid+"_"+d
+      )||"null"
+    );
+
+    return x
+      ?{
+          submitted:x.submitted||{},
+          absent:x.absent||[]
+        }
+      :empty();
+
+  }catch{
+
+    return empty();
+
+  }
+
+}
+
+
+/* =========================================================
+   初期化
+========================================================= */
+
+function init(){
+
+  migrateOldData();
+
+  document.getElementById("size").value=size();
+
+  document.getElementById("prefix").value=+prefix();
+
+  document.getElementById("taskDate").value=today();
+
+
+  try{
+
+    tasks=JSON.parse(
+      localStorage.getItem(K.tasks)||"[]"
+    );
+
+  }catch{
+
+    tasks=[];
+
+  }
+
+
+  taskId=
+    tasks[0]?.id||
+    null;
+
+
+  renderSelect();
+
+  loadCurrent();
+
+  renderMatrix();
+
+  updateQRPageInfo();
+
+
+  if("serviceWorker" in navigator){
+
+    navigator.serviceWorker
+      .register("./sw.js")
+      .catch(()=>{});
+
+  }
+
+}
+
+
+/* =========================================================
+   宿題選択
+========================================================= */
+
+function renderSelect(){
+
+  let s=
+    document.getElementById(
+      "taskSelect"
+    );
+
+  s.innerHTML="";
+
+
+  if(!tasks.length){
+
+    let o=
+      document.createElement(
+        "option"
+      );
+
+    o.value="";
+    o.textContent=
+      "宿題が登録されていません";
+
+    s.appendChild(o);
+
+    s.disabled=true;
+
+    return;
+
+  }
+
+
+  s.disabled=false;
+
+
+  tasks.forEach(t=>{
+
+    let o=
+      document.createElement(
+        "option"
+      );
+
+    o.value=t.id;
+    o.textContent=t.name;
+
+    s.appendChild(o);
+
+  });
+
+
+  s.value=
+    taskId||
+    tasks[0].id;
+
+}
+
+
+/* =========================================================
+   宿題変更
+========================================================= */
+
+function changeTask(){
+
+  taskId=
+    document.getElementById(
+      "taskSelect"
+    ).value||null;
+
+  loadCurrent();
+
+}
+
+
+/* =========================================================
+   宿題追加
+========================================================= */
+
+function addTask(){
+
+  let n=
+    prompt(
+      "宿題の名前を入力してください"
+    );
+
+  if(!n)return;
+
+
+  let t={
+
+    id:
+      crypto.randomUUID?.()||
+      Date.now().toString(),
+
+    name:n.trim(),
+
+    dates:[],
+
+    targetOff:[]
+
+  };
+
+
+  tasks.push(t);
+
+  taskId=t.id;
+
+  saveTasks();
+
+  renderSelect();
+
+  loadCurrent();
+
+  renderMatrix();
+
+
+  alert(
+    `「${t.name}」を追加しました。\n\n`+
+    `次に「宿題の日付設定」で提出日を登録してください。`
+  );
+
+}
+
+
+/* =========================================================
+   宿題削除
+========================================================= */
+
+function deleteTask(){
+
+  let t=task();
+
+  if(!t){
+
+    return alert(
+      "削除する宿題を選択してください。"
+    );
+
+  }
+
+
+  if(
+    !confirm(
+      `「${t.name}」を宿題一覧から削除してもよいですか？\n\n`+
+      `この宿題の登録と提出状況一覧からの表示を削除します。`
+    )
+  )return;
+
+
+  tasks=
+    tasks.filter(
+      x=>x.id!==taskId
+    );
+
+  taskId=
+    tasks[0]?.id||
+    null;
+
+  saveTasks();
+
+  renderSelect();
+
+  loadCurrent();
+
+  renderMatrix();
+
+}
+
+
+/* =========================================================
+   日付追加
+========================================================= */
+
+function addDate(){
+
+  let t=task();
+
+  let d=
+    document.getElementById(
+      "taskDate"
+    ).value;
+
+
+  if(!t){
+
+    return alert(
+      "先に宿題を追加してください。"
+    );
+
+  }
+
+
+  if(!d){
+
+    return alert(
+      "日付を選択してください。"
+    );
+
+  }
+
+
+  t.dates=t.dates||[];
+
+
+  if(t.dates.includes(d)){
+
+    return alert(
+      "その日はすでに登録されています。"
+    );
+
+  }
+
+
+  t.dates.push(d);
+
+  t.dates.sort();
+
+  saveTasks();
+
+  loadCurrent();
+
+  renderMatrix();
+
+}
+
+
+/* =========================================================
+   日付削除
+========================================================= */
+
+function removeDate(d){
+
+  let t=task();
+
+  if(!t)return;
+
+
+  if(
+    !confirm(
+      `${d} の「${t.name}」を提出日から取り消してもよいですか？\n\n`+
+      `この日の提出状況（⭕・❌・欠席）も削除されます。`
+    )
+  )return;
+
+
+  t.dates=
+    t.dates.filter(
+      x=>x!==d
+    );
+
+  localStorage.removeItem(
+    key(t.id,d)
+  );
+
+  saveTasks();
+
+
+  if(date===d){
+
+    date=
+      t.dates?.includes(today())
+        ?today()
+        :(t.dates?.at(-1)||"");
+
+    data=
+      date
+        ?load(taskId,date)
+        :empty();
+
+  }
+
+
+  renderTaskInfo();
+
+  renderTargets();
+
+  update();
+
+  renderMatrix();
+
+  showUndo(d,t);
+
+}
+
+
+function showUndo(d,t){
+
+  let old=
+    document.getElementById(
+      "undoNotice"
+    );
+
+  if(old)old.remove();
+
+
+  let box=
+    document.createElement(
+      "div"
+    );
+
+  box.id="undoNotice";
+
+  box.className="notice";
+
+  box.innerHTML=
+    `🗑️ ${esc(d)} の提出日を取り消しました。 `+
+    `<button class="blue" style="margin-left:6px;padding:7px 10px"`+
+    ` onclick="undoRemoveDate('${esc(d)}','${esc(t.id)}')">`+
+    `元に戻す</button>`;
+
+
+  document
+    .querySelector(".wrap")
+    .insertBefore(
+      box,
+      document.querySelector(".wrap").children[0]
+    );
+
+
+  setTimeout(()=>{
+
+    if(box.parentNode)
+      box.remove();
+
+  },8000);
+
+}
+
+
+function undoRemoveDate(d,tid){
+
+  let t=
+    tasks.find(
+      x=>x.id===tid
+    );
+
+  if(!t)return;
+
+
+  if(!t.dates.includes(d))
+    t.dates.push(d);
+
+  t.dates.sort();
+
+  saveTasks();
+
+
+  date=
+    t.dates.includes(today())
+      ?today()
+      :(t.dates.at(-1)||"");
+
+
+  data=
+    date
+      ?load(t.id,date)
+      :empty();
+
+
+  renderSelect();
+
+  renderTaskInfo();
+
+  renderTargets();
+
+  update();
+
+  renderMatrix();
+
+
+  let n=
+    document.getElementById(
+      "undoNotice"
+    );
+
+  if(n)n.remove();
+
+}
+
+
+/* =========================================================
+   現在の宿題
+========================================================= */
+
+function loadCurrent(){
+
+  let t=task();
+
+
+  if(!t){
+
+    date="";
+    data=empty();
+
+  }else{
+
+    date=
+      t.dates?.includes(today())
+        ?today()
+        :(t.dates?.at(-1)||"");
+
+
+    data=
+      date
+        ?load(taskId,date)
+        :empty();
+
+  }
+
+
+  renderTaskInfo();
+
+  renderTargets();
+
+  update();
+
+}
+
+
+/* =========================================================
+   宿題情報
+========================================================= */
+
+function renderTaskInfo(){
+
+  let t=task();
+
+  let info=
+    document.getElementById(
+      "taskInfo"
+    );
+
+
+  if(!t){
+
+    info.innerHTML=
+      '<div class="empty-task">'+
+      'まだ宿題が登録されていません。<br>'+
+      '「＋ 宿題追加」→「宿題の日付設定」で提出日を登録してください。'+
+      '</div>';
+
+  }
+
+  else if(!t.dates?.length){
+
+    info.innerHTML=
+      `<strong>${esc(t.name)}</strong><br>`+
+      `<span class="small">📅 提出日がまだ登録されていません。</span>`;
+
+  }
+
+  else{
+
+    info.innerHTML=
+      `<strong>${esc(t.name)}</strong><br>`+
+      `<span class="small">`+
+      `${t.dates.includes(today())`+
+        `?"📅 今日の提出日です"`+
+        `:"今日は提出日ではありません"}`+
+      `</span>`;
+
+  }
+
+
+  let box=
+    document.getElementById(
+      "dates"
+    );
+
+  box.innerHTML="";
+
+
+  (t?.dates||[]).forEach(d=>{
+
+    let e=
+      document.createElement(
+        "span"
+      );
+
+    e.className="date";
+
+    e.innerHTML=
+      `${esc(d)} `+
+      `<button class="date-cancel"`+
+      ` onclick="removeDate('${esc(d)}')">`+
+      `キャンセル</button>`;
+
+    box.appendChild(e);
+
+  });
+
+}
+
+
+/* =========================================================
+   提出対象
+========================================================= */
+
+function renderTargets(){
+
+  let box=
+    document.getElementById(
+      "targets"
+    );
+
+  box.innerHTML="";
+
+
+  ids().forEach(id=>{
+
+    let on=target(id);
+
+    let e=
+      document.createElement(
+        "label"
+      );
+
+    e.className=
+      "target"+
+      (on?"":" off");
+
+
+    e.innerHTML=
+      `<input type="checkbox"`+
+      ` ${on?"checked":""}`+
+      ` onchange="toggleTarget('${id}',this.checked)"> `+
+      `${id}`;
+
+
+    box.appendChild(e);
+
+  });
+
+}
+
+
+function toggleTarget(id,on){
+
+  let t=task();
+
+  if(!t)return;
+
+
+  t.targetOff=
+    t.targetOff||[];
+
+
+  if(on){
+
+    t.targetOff=
+      t.targetOff.filter(
+        x=>x!==id
+      );
+
+  }
+
+  else{
+
+    if(!t.targetOff.includes(id))
+      t.targetOff.push(id);
+
+    delete data.submitted[id];
+
+  }
+
+
+  saveTasks();
+
+  save(taskId,date,data);
+
+  renderTargets();
+
+  update();
+
+  renderMatrix();
+
+}
+
+
+function allTargets(on){
+
+  let t=task();
+
+  if(!t)return;
+
+
+  t.targetOff=
+    on
+      ?[]
+      :ids();
+
+
+  if(!on)
+    data.submitted={};
+
+
+  saveTasks();
+
+  save(taskId,date,data);
+
+  renderTargets();
+
+  update();
+
+  renderMatrix();
+
+}
+
+
+/* =========================================================
+   提出状況更新
+========================================================= */
+
+function update(){
+
+  let active=
+    !!task()&&!!date;
+
+
+  let ts=
+    active
+      ?ids().filter(
+          id=>target(id)
+        )
+      :[];
+
+
+  let abs=
+    active
+      ?ts.filter(
+          id=>data.absent.includes(id)
+        )
+      :[];
+
+
+  let sub=
+    active
+      ?ts.filter(
+          id=>data.submitted[id]
+        )
+      :[];
+
+
+  let den=
+    ts.length-abs.length;
+
+
+  let rate=
+    den
+      ?Math.round(
+          sub.length/den*100
+        )
+      :0;
+
+
+  document.getElementById(
+    "count"
+  ).textContent=
+    active
+      ?`${sub.length} / ${ts.length}`
+      :"—";
+
+
+  document.getElementById(
+    "bar"
+  ).style.width=
+    (active?rate:0)+"%";
+
+
+  document.getElementById(
+    "absentInfo"
+  ).textContent=
+    active
+      ?`欠席 ${abs.length}人`
+      :"提出日が設定されていません";
+
+
+  document.getElementById(
+    "excludeInfo"
+  ).textContent=
+    active
+      ?`提出対象外 ${ids().length-ts.length}人`
+      :"";
+
+
+  let rem=
+    active
+      ?ts.filter(
+          id=>
+            !data.submitted[id]&&
+            !data.absent.includes(id)
+        )
+      :[];
+
+
+  let b=
+    document.getElementById(
+      "remaining"
+    );
+
+
+  b.classList.toggle(
+    "ok",
+    active&&!rem.length
+  );
+
+
+  document.getElementById(
+    "remainingTitle"
+  ).textContent=
+    !active
+      ?"📅 提出日を登録してください"
+      :(
+        rem.length
+          ?`🔴 あと${rem.length}人`
+          :"🎉 全員提出！！"
+      );
+
+
+  document.getElementById(
+    "remainingList"
+  ).innerHTML=
+    rem.map(
+      x=>`<span class="num">${x}</span>`
+    ).join("");
+
+}
+
+
+/* =========================================================
+   欠席
+========================================================= */
+
+function registerAbsent(){
+
+  if(!task()||!date){
+
+    return alert(
+      "先に宿題の提出日を登録してください。"
+    );
+
+  }
+
+
+  let id=
+    idOf(
+      document.getElementById(
+        "absentNo"
+      ).value
+    );
+
+
+  if(!id){
+
+    return alert(
+      "正しい番号を入力してください。"
+    );
+
+  }
+
+
+  if(!target(id)){
+
+    return alert(
+      "提出対象外です。"
+    );
+
+  }
+
+
+  if(!data.absent.includes(id))
+    data.absent.push(id);
+
+
+  save(taskId,date,data);
+
+
+  document.getElementById(
+    "absentNo"
+  ).value="";
+
+
+  update();
+
+  renderMatrix();
+
+}
+
+
+/* =========================================================
+   QRスキャナー
+========================================================= */
+
+async function toggleScanner(){
+
+  running
+    ?await stopScanner()
+    :await startScanner();
+
+}
+
+
+async function startScanner(){
+
+  try{
+
+    audioCtx();
+
+    cameras=
+      await Html5Qrcode.getCameras();
+
+
+    if(!cameras.length){
+
+      return alert(
+        "カメラがありません。"
+      );
+
+    }
+
+
+    camIndex=
+      Math.max(
+        0,
+        cameras.findIndex(
+          c=>
+            /back|rear|environment/i
+              .test(c.label)
+        )
+      );
+
+
+    await startCam(
+      cameras[camIndex].id
+    );
+
+
+  }catch(e){
+
+    console.error(e);
+
+    alert(
+      "カメラを起動できませんでした。"+
+      "ブラウザのカメラ許可を確認してください。"
+    );
+
+  }
+
+}
+
+
+async function startCam(cid){
+
+  scanner=
+    new Html5Qrcode(
+      "reader"
+    );
+
+
+  await scanner.start(
+
+    cid,
+
+    {
+      fps:30,
+
+      qrbox:(w,h)=>{
+
+        let s=
+          Math.floor(
+            Math.min(w,h)*.75
+          );
+
+        return{
+          width:s,
+          height:s
+        };
+
+      },
+
+      aspectRatio:1
+    },
+
+    scanOK,
+    scanFail
+
+  );
+
+
+  running=true;
+
+
+  document.getElementById(
+    "scanBtn"
+  ).textContent=
+    "⏹ スキャン停止";
+
+
+  document.getElementById(
+    "scanBtn"
+  ).classList.add(
+    "stop"
+  );
+
+}
+
+
+async function stopScanner(){
+
+  if(scanner){
+
+    try{
+      await scanner.stop();
+    }catch{}
+
+    try{
+      scanner.clear();
+    }catch{}
+
+  }
+
+
+  scanner=null;
+
+  running=false;
+
+
+  document.getElementById(
+    "scanBtn"
+  ).textContent=
+    "🔊 スキャン開始";
+
+
+  document.getElementById(
+    "scanBtn"
+  ).classList.remove(
+    "stop"
+  );
+
+}
+
+
+async function switchCamera(){
+
+  if(!running){
+
+    return alert(
+      "まずスキャンを開始してください。"
+    );
+
+  }
+
+
+  if(cameras.length<2){
+
+    return alert(
+      "切替可能なカメラがありません。"
+    );
+
+  }
+
+
+  camIndex=
+    (camIndex+1)%
+    cameras.length;
+
+
+  try{
+
+    await scanner.stop();
+
+    await scanner.clear();
+
+  }catch{}
+
+
+  scanner=null;
+
+
+  await startCam(
+    cameras[camIndex].id
+  );
+
+}
+
+
+function scanFail(){}
+
+
+function scanOK(text){
+
+  if(!task()||!date){
+
+    document.getElementById(
+      "lastNo"
+    ).textContent="—";
+
+
+    document.getElementById(
+      "lastMsg"
+    ).textContent=
+      "📅 先に提出日を登録してください";
+
+
+    beep(220);
+
+    return;
+
+  }
+
+
+  let now=Date.now();
+
+
+  if(
+    text===lastCode&&
+    now-lastTime<1000
+  )return;
+
+
+  lastCode=text;
+
+  lastTime=now;
+
+
+  if(lock)return;
+
+
+  lock=true;
+
+
+  setTimeout(
+    ()=>lock=false,
+    300
+  );
+
+
+  let id=idOf(text);
+
+  let n=
+    document.getElementById(
+      "lastNo"
+    );
+
+  let m=
+    document.getElementById(
+      "lastMsg"
+    );
+
+
+  if(!id){
+
+    n.textContent="?";
+
+    m.textContent="❌ 無効なQR";
+
+    beep(220);
+
+    return;
+
+  }
+
+
+  n.textContent=id;
+
+
+  if(!target(id)){
+
+    m.textContent=
+      "⏸ 提出対象外";
+
+    beep(330);
+
+    return;
+
+  }
+
+
+  if(data.absent.includes(id)){
+
+    m.textContent=
+      "🚫 欠席登録";
+
+    beep(330);
+
+    return;
+
+  }
+
+
+  if(data.submitted[id]){
+
+    m.textContent=
+      "⚠️ すでに提出済み";
+
+    beep(440);
+
+    return;
+
+  }
+
+
+  data.submitted[id]={
+
+    time:
+      new Date()
+      .toLocaleTimeString(
+        "ja-JP"
+      )
+
+  };
+
+
+  save(
+    taskId,
+    date,
+    data
+  );
+
+
+  m.textContent=
+    "✅ 提出しました！";
+
+
+  beep(880);
+
+  update();
+
+  renderMatrix();
+
+}
+
+
+/* =========================================================
+   音
+========================================================= */
+
+function audioCtx(){
+
+  if(!audio){
+
+    audio=
+      new(
+        window.AudioContext||
+        window.webkitAudioContext
+      )();
+
+  }
+
+
+  if(
+    audio.state==="suspended"
+  ){
+
+    audio.resume();
+
+  }
+
+}
+
+
+function beep(f){
+
+  audioCtx();
+
+
+  let o=
+    audio.createOscillator();
+
+  let g=
+    audio.createGain();
+
+
+  o.frequency.value=f;
+
+  g.gain.value=.12;
+
+
+  o.connect(g);
+
+  g.connect(
+    audio.destination
+  );
+
+
+  o.start();
+
+  o.stop(
+    audio.currentTime+.12
+  );
+
+}
+
+
+/* =========================================================
+   提出状況一覧
+========================================================= */
+
+function columns(){
+
+  let a=[];
+
+
+  tasks.forEach(t=>
+
+    (t.dates||[]).forEach(d=>
+
+      a.push({
+        t,
+        d
+      })
+
+    )
+
+  );
+
+
+  return a.sort(
+    (a,b)=>
+      a.d.localeCompare(b.d)||
+      a.t.name.localeCompare(b.t.name)
+  );
+
+}
+
+
+function cell(c,id){
+
+  let d=
+    load(
+      c.t.id,
+      c.d
+    );
+
+
+  if(
+    !target(id,c.t)||
+    d.absent.includes(id)
+  ){
+
+    return "—";
+
+  }
+
+
+  return d.submitted[id]
+    ?"⭕"
+    :"❌";
+
+}
+
+
+function rate(id,cs){
+
+  let s=0;
+  let n=0;
+
+
+  cs.forEach(c=>{
+
+    let v=
+      cell(c,id);
+
+
+    if(v==="—")return;
+
+
+    n++;
+
+
+    if(v==="⭕")
+      s++;
+
+  });
+
+
+  return n
+    ?Math.round(s/n*100)
+    :null;
+
+}
+
+
+function renderMatrix(){
+
+  let cs=columns();
+
+
+  let box=
+    document.getElementById(
+      "matrix"
+    );
+
+
+  if(!cs.length){
+
+    box.innerHTML=
+      '<div class="small">'+
+      'まだ宿題の日付がありません。'+
+      '</div>';
+
+    return;
+
+  }
+
+
+  let h=
+    '<div class="tablewrap">'+
+    '<table class="matrix">'+
+    '<tr><th>番号</th>';
+
+
+  cs.forEach(c=>{
+
+    h+=
+      `<th>${esc(c.d.slice(5))}<br>`+
+      `${esc(c.t.name)}</th>`;
+
+  });
+
+
+  h+="<th>提出率</th></tr>";
+
+
+  ids().forEach(id=>{
+
+    let r=
+      rate(id,cs);
+
+
+    h+=
+      `<tr><td><strong>${id}番</strong></td>`;
+
+
+    cs.forEach(c=>{
+
+      let v=
+        cell(c,id);
+
+
+      h+=
+        `<td class="`+
+        `${
+          v==="⭕"
+            ?"circle"
+            :v==="❌"
+              ?"cross"
+              :""
+        }">${v}</td>`;
+
+    });
+
+
+    h+=
+      `<td class="rate">`+
+      `${
+        r===null
+          ?"—"
+          :r+"%"
+      }</td></tr>`;
+
+  });
+
+
+  box.innerHTML=
+    h+
+    "</table></div>";
+
+}
+
+
+/* =========================================================
+   CSV
+========================================================= */
+
+function exportCSV(){
+
+  let cs=columns();
+
+
+  if(!cs.length){
+
+    return alert(
+      "宿題の日付がありません。"
+    );
+
+  }
+
+
+  let rows=[
+
+    [
+      "出席番号",
+      ...cs.map(
+        c=>`${c.d} ${c.t.name}`
+      ),
+      "提出率"
+    ]
+
+  ];
+
+
+  ids().forEach(id=>{
+
+    let r=
+      rate(id,cs);
+
+
+    rows.push([
+
+      id,
+
+      ...cs.map(
+        c=>cell(c,id)
+      ),
+
+      r===null
+        ?""
+        :r+"%"
+
+    ]);
+
+  });
+
+
+  let csv=
+    rows
+      .map(
+        r=>
+          r.map(
+            v=>
+              `"${String(v)
+                .replace(/"/g,'""')}"`
+          ).join(",")
+      )
+      .join("\n");
+
+
+  let u=
+    URL.createObjectURL(
+      new Blob(
+        ["\ufeff"+csv],
+        {
+          type:
+            "text/csv;charset=utf-8"
+        }
+      )
+    );
+
+
+  let a=
+    document.createElement(
+      "a"
+    );
+
+
+  a.href=u;
+
+  a.download=
+    "宿題提出一覧.csv";
+
+  a.click();
+
+
+  URL.revokeObjectURL(u);
+
+}
+
+
+/* =========================================================
+   クラス設定
+========================================================= */
+
+function saveClass(){
+
+  let s=
+    +document.getElementById(
+      "size"
+    ).value;
+
+
+  let p=
+    +document.getElementById(
+      "prefix"
+    ).value;
+
+
+  if(
+    s<1||
+    s>99||
+    p<1||
+    p>99
+  ){
+
+    return alert(
+      "設定値を確認してください。"
+    );
+
+  }
+
+
+  localStorage.setItem(
+    K.size,
+    s
+  );
+
+
+  localStorage.setItem(
+    K.prefix,
+    String(p).padStart(2,"0")
+  );
+
+
+  renderTargets();
+
+  update();
+
+  renderMatrix();
+
+}
+
+
+/* =========================================================
+   QRコード印刷
+========================================================= */
+
+
+/*
+  人数に応じたレイアウト
+
+  2人  → 2列 × 1行
+  3人  → 2列 × 2行
+  4人  → 2列 × 2行
+  5人  → 2列 × 3行
+  6人  → 2列 × 3行
+  7人  → 2列 × 4行
+  8人  → 2列 × 4行
+  9人  → 2列 × 5行
+ 10人  → 2列 × 5行
+
+*/
+
+function getQRLayout(n){
+
+  let rows=
+    Math.ceil(n/2);
+
+  let cols=2;
+
+  return{
+    rows,
+    cols
+  };
+
+}
+
+
+/*
+  行数に応じてQRコードの大きさを決める
+*/
+
+function getQRSize(rows){
+
+  const sizes={
+
+    1:"75mm",
+    2:"60mm",
+    3:"47mm",
+    4:"38mm",
+    5:"31mm"
+
+  };
+
+
+  return sizes[rows]||"31mm";
+
+}
+
+
+/*
+  何ページ必要か
+*/
+
+function getPageCount(){
+
+  let n=
+    parseInt(
+      document.getElementById(
+        "qrPerPage"
+      ).value,
+      10
+    );
+
+
+  return Math.ceil(
+    size()/n
+  );
+
+}
+
+
+/*
+  QR印刷情報
+*/
+
+function updateQRPageInfo(){
+
+  let n=
+    parseInt(
+      document.getElementById(
+        "qrPerPage"
+      ).value,
+      10
+    );
+
+
+  let pages=
+    Math.ceil(
+      size()/n
+    );
+
+
+  document.getElementById(
+    "qrPageInfo"
+  ).textContent=
+    `現在の学級人数 ${size()}人 → `+
+    `A4 ${n}人/枚 → `+
+    `${pages}ページ`;
+
+}
+
+
+/*
+  人数変更時
+*/
+
+function qrPerPageChanged(){
+
+  updateQRPageInfo();
+
+  makeQR();
+
+}
+
+
+/*
+  QRコードを1個生成
+*/
+
+function createSingleQR(container,text){
+
+  container.innerHTML="";
+
+
+  new QRCode(
+    container,
+    {
+      text:text,
+
+      width:220,
+
+      height:220,
+
+      correctLevel:
+        QRCode.CorrectLevel.H
+
+    }
+  );
+
+
+  /*
+    QRCode.jsがcanvasとimgを
+    両方作った場合があるので、
+    canvasを優先して1個だけ残す。
+  */
+
+  const canvas=
+    container.querySelector(
+      "canvas"
+    );
+
+  const img=
+    container.querySelector(
+      "img"
+    );
+
+
+  if(canvas){
+
+    if(img)
+      img.remove();
+
+  }
+
+  else if(img){
+
+    /*
+      canvasが無い環境では
+      imgを残す
+    */
+
+    img.style.display=
+      "block";
+
+  }
+
+}
+
+
+/*
+  QRコード作成
+*/
+
+function makeQR(){
+
+  let grid=
+    document.getElementById(
+      "qrgrid"
+    );
+
+
+  grid.innerHTML="";
+
+
+  let perPage=
+    parseInt(
+      document.getElementById(
+        "qrPerPage"
+      ).value,
+      10
+    );
+
+
+  let allIds=ids();
+
+
+  let pageCount=
+    Math.ceil(
+      allIds.length/perPage
+    );
+
+
+  updateQRPageInfo();
+
+
+  for(
+    let page=0;
+    page<pageCount;
+    page++
+  ){
+
+    let pageBox=
+      document.createElement(
+        "div"
+      );
+
+    pageBox.className=
+      "qr-page";
+
+
+    let title=
+      document.createElement(
+        "div"
+      );
+
+    title.className=
+      "qr-page-title";
+
+    title.textContent=
+      `QRコード ${page+1} / ${pageCount}`;
+
+    pageBox.appendChild(title);
+
+
+    let pageGrid=
+      document.createElement(
+        "div"
+      );
+
+    pageGrid.className=
+      "qr-grid";
+
+
+    let currentIds=
+      allIds.slice(
+        page*perPage,
+        (page+1)*perPage
+      );
+
+
+    let layout=
+      getQRLayout(
+        currentIds.length
+      );
+
+
+    let qrSize=
+      getQRSize(
+        layout.rows
+      );
+
+
+    /*
+      CSS grid設定
+    */
+
+    pageGrid.style.gridTemplateColumns=
+      `repeat(${layout.cols},1fr)`;
+
+
+    pageGrid.style.gridTemplateRows=
+      `repeat(${layout.rows},1fr)`;
+
+
+    /*
+      QRサイズ
+    */
+
+    pageGrid.style.setProperty(
+      "--qr-size",
+      qrSize
+    );
+
+
+    /*
+      実際のQR
+    */
+
+    currentIds.forEach(id=>{
+
+      let item=
+        document.createElement(
+          "div"
+        );
+
+      item.className=
+        "qr-item";
+
+
+      let number=
+        document.createElement(
+          "div"
+        );
+
+      number.className=
+        "qr-number";
+
+      number.textContent=
+        `${id}番`;
+
+
+      let qr=
+        document.createElement(
+          "div"
+        );
+
+      qr.className=
+        "qrcode";
+
+
+      item.appendChild(
+        number
+      );
+
+      item.appendChild(
+        qr
+      );
+
+      pageGrid.appendChild(
+        item
+      );
+
+
+      /*
+        QRの内容は
+        クラス番号＋出席番号
+
+        例：
+        クラス31
+        01番
+        → 3101
+      */
+
+      createSingleQR(
+        qr,
+        prefix()+id
+      );
+
+    });
+
+
+    /*
+      奇数人数の場合、
+      最後に空白セルを追加
+
+      例：5人/枚
+      □ □
+      □ □
+      □ ■
+
+      ■は空白
+    */
+
+    while(
+      pageGrid.children.length<
+      layout.rows*layout.cols
+    ){
+
+      let empty=
+        document.createElement(
+          "div"
+        );
+
+      empty.className=
+        "qr-item empty";
+
+      pageGrid.appendChild(
+        empty
+      );
+
+    }
+
+
+    pageBox.appendChild(
+      pageGrid
+    );
+
+
+    grid.appendChild(
+      pageBox
+    );
+
+  }
+
+}
+
+
+/*
+  印刷
+*/
+
+function printQR(){
+
+  /*
+    QRコードがまだ作られていない場合は
+    先に作る
+  */
+
+  let grid=
+    document.getElementById(
+      "qrgrid"
+    );
+
+
+  if(!grid.children.length){
+
+    makeQR();
+
+  }
+
+
+  /*
+    QRコード作成直後に印刷すると、
+    ブラウザによっては描画前になるので
+    少し待つ
+  */
+
+  setTimeout(()=>{
+
+    window.print();
+
+  },500);
+
+}
+
+
+/* =========================================================
+   画面読み込み
+========================================================= */
+
+window.addEventListener(
+  "load",
+  init
+);
+
+</script>
+
+</body>
+</html>
