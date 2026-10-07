@@ -633,7 +633,7 @@ button{
 
 
 /* =========================================================
-   印刷時：QRコード二重表示防止
+   印刷時:QRコード二重表示防止
 ========================================================= */
 
 .qrcode img{
@@ -660,6 +660,10 @@ button{
 <!-- =====================================================
      スキャン
 ===================================================== -->
+
+<div id="scanModeBanner" class="info" style="text-align:center;font-weight:bold;margin-bottom:8px">
+📝 宿題モードでスキャン中
+</div>
 
 <button id="scanBtn" class="scan" onclick="toggleScanner()">
 🔊 スキャン開始
@@ -1157,6 +1161,22 @@ function updateDrillUI(){
   btn.textContent=active?"📝 宿題モードにする":"📖 ドリルモードにする";
   btn.classList.toggle("drill-active",active);
   renderDrills();
+  updateScanModeBanner();
+}
+
+function updateScanModeBanner(){
+  const b=document.getElementById("scanModeBanner");
+  if(!b)return;
+  const active=!!drill()&&drillMode&&!drill()?.closed;
+  if(active){
+    b.textContent=`📖 ドリルモードでスキャン中：${drill().name}`;
+    b.style.background="#ede9fe";
+    b.style.color="#6d28d9";
+  }else{
+    b.textContent="📝 宿題モードでスキャン中";
+    b.style.background="#eff6ff";
+    b.style.color="#1d4ed8";
+  }
 }
 
 function drillScan(text){
@@ -1509,6 +1529,12 @@ function init(){
 
   updateQRPageInfo();
 
+  loadDrills();
+
+  renderDrills();
+
+  updateDrillUI();
+
 
   if("serviceWorker" in navigator){
 
@@ -1752,6 +1778,8 @@ function addDate(){
    日付削除
 ========================================================= */
 
+let lastRemovedDateBackup=null;
+
 function removeDate(d){
 
   let t=task();
@@ -1771,6 +1799,12 @@ function removeDate(d){
     t.dates.filter(
       x=>x!==d
     );
+
+  lastRemovedDateBackup={
+    taskId:t.id,
+    date:d,
+    data:load(t.id,d)
+  };
 
   localStorage.removeItem(
     key(t.id,d)
@@ -1867,6 +1901,23 @@ function undoRemoveDate(d,tid){
   t.dates.sort();
 
   saveTasks();
+
+
+  if(
+    lastRemovedDateBackup&&
+    lastRemovedDateBackup.taskId===tid&&
+    lastRemovedDateBackup.date===d
+  ){
+
+    save(
+      tid,
+      d,
+      lastRemovedDateBackup.data
+    );
+
+    lastRemovedDateBackup=null;
+
+  }
 
 
   date=
@@ -2106,6 +2157,23 @@ function allTargets(on){
   let t=task();
 
   if(!t)return;
+
+
+  if(!on){
+
+    const hasData=
+      date&&
+      Object.keys(data.submitted||{}).length>0;
+
+    if(
+      hasData&&
+      !confirm(
+        "全員を提出対象外にします。\n\n"+
+        "この宿題・この日の提出記録もすべて削除されます。よろしいですか？"
+      )
+    )return;
+
+  }
 
 
   t.targetOff=
@@ -2512,6 +2580,9 @@ function scanFail(){}
 
 
 function scanOK(text){
+
+  if(drillScan(text))return;
+
 
   if(!task()||!date){
 
