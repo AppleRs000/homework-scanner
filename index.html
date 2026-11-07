@@ -1,64 +1,1194 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>共通設定・データ管理</title>
-  <link rel="stylesheet" href="../common/common.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#2563eb">
+<link rel="manifest" href="./manifest.webmanifest">
+<title>学習提出管理</title>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f2f4f7;color:#222;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP",sans-serif}
+header{background:#2563eb;color:#fff;padding:10px 12px;display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:20}
+header h1{flex:1;margin:0;font-size:19px;text-align:center}
+#backBtn{background:rgba(255,255,255,.22);color:#fff;padding:8px 12px;visibility:hidden}
+#backBtn.show{visibility:visible}
+#yearSel{width:auto;margin:0;padding:6px;font-size:15px}
+.wrap{max-width:1100px;margin:auto;padding:10px}
+.view{display:none}
+.view.active{display:block}
+.card{background:#fff;border-radius:16px;padding:16px;margin-bottom:10px}
+.card h2{margin:0 0 12px;font-size:19px}
+button,input,select{font-size:17px}
+input,select{width:100%;padding:12px;border:1px solid #ccc;border-radius:10px;margin-bottom:8px;background:#fff}
+input[type=checkbox]{width:auto;margin:0}
+button{border:0;border-radius:10px;padding:12px 16px;font-weight:bold;cursor:pointer}
+.blue{background:#2563eb;color:#fff}
+.green{background:#16a34a;color:#fff}
+.gray{background:#64748b;color:#fff}
+.red{background:#dc2626;color:#fff}
+.light{background:#e2e8f0;color:#334155}
+.row{display:flex;gap:8px;margin-bottom:8px}
+.row>*{flex:1}
+.small{font-size:13px;color:#666}
+.info{background:#eff6ff;border-radius:10px;padding:10px;margin-bottom:8px}
+.empty-task{background:#f8fafc;border:1px dashed #cbd5e1;border-radius:10px;padding:12px;color:#64748b}
+
+/* ホーム */
+.home-title{text-align:center;padding:14px 0 6px}
+.home-title .ico{font-size:44px}
+.home-title h2{margin:4px 0;font-size:30px}
+.home-title p{margin:0;color:#666}
+.menu{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:14px;margin-bottom:12px;cursor:pointer}
+.menu .tile{width:64px;height:64px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:32px;flex:none}
+.menu .tx{flex:1}
+.menu .tx b{font-size:20px;display:block}
+.menu .tx span{color:#666;font-size:14px}
+.menu .arrow{color:#94a3b8;font-size:26px}
+.t-blue{background:#dbeafe}.t-green{background:#dcfce7}.t-purple{background:#ede9fe}.t-gray{background:#e2e8f0}
+
+/* スキャン */
+.scan{width:100%;background:#16a34a;color:#fff;font-size:22px;padding:16px;margin-bottom:8px}
+.scan.stop{background:#dc2626}
+.cam{width:100%;background:#2563eb;color:#fff;font-size:17px;padding:12px;margin-bottom:10px}
+.reader{background:#000;border-radius:16px;overflow:hidden;margin-bottom:10px}
+.reader>div{width:100%}
+.reader video{width:100%!important;height:auto!important}
+.last{text-align:center;margin:6px 0 10px}
+.lastno{font-size:64px;font-weight:900;line-height:1}
+.lastmsg{font-size:21px;font-weight:bold}
+
+/* 状況 */
+.count{text-align:center;font-size:52px;font-weight:900}
+.progress{height:22px;background:#ddd;border-radius:99px;overflow:hidden}
+.bar{height:100%;width:0;background:#22c55e}
+.remaining{margin-top:12px;background:#fff1f2;border-radius:12px;padding:12px;text-align:center}
+.remaining.ok{background:#dcfce7}
+.remaining-title{font-size:22px;font-weight:bold}
+.nums{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px}
+.num{border:2px solid #f87171;background:#fff;border-radius:9px;padding:5px 9px;font-weight:bold}
+
+/* 児童ボタン */
+.modes{display:flex;gap:6px;margin-bottom:8px}
+.modes button{flex:1;padding:10px 4px;font-size:15px;background:#e2e8f0;color:#334155}
+.modes button.on{background:#2563eb;color:#fff}
+.sgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.sc{padding:8px 0;text-align:center;border:2px solid #f87171;border-radius:10px;background:#fff;font-weight:bold;font-size:17px;cursor:pointer;user-select:none}
+.sc small{display:block;font-size:11px;font-weight:normal}
+.sc.done{background:#dcfce7;border-color:#22c55e;color:#166534}
+.sc.absent{background:#e2e8f0;border-color:#94a3b8;color:#475569}
+.sc.off{background:#f1f5f9;border-color:#ddd;color:#999}
+.tgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.target{padding:8px 2px;text-align:center;border:2px solid #ddd;border-radius:9px;display:flex;gap:4px;justify-content:center;align-items:center}
+.target.off{background:#eee;color:#999}
+
+/* 日付 */
+.dates{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.dchip{background:#dbeafe;color:#1d4ed8;padding:7px 10px;border-radius:9px;font-size:15px;font-weight:bold;cursor:pointer;border:2px solid transparent}
+.dchip.on{background:#2563eb;color:#fff}
+
+/* 一覧 */
+.tablewrap{overflow:auto;border:1px solid #ddd;border-radius:10px;max-height:70vh}
+.matrix{border-collapse:separate;border-spacing:0;min-width:650px;width:100%;font-size:14px}
+.matrix th,.matrix td{padding:7px 9px;text-align:center;border-right:1px solid #ddd;border-bottom:1px solid #ddd;white-space:nowrap}
+.matrix th{background:#f1f5f9;position:sticky;top:0;z-index:2}
+.matrix th:first-child,.matrix td:first-child{position:sticky;left:0;z-index:3;background:#fff}
+.matrix th:first-child{background:#e2e8f0}
+.rate{font-weight:bold}
+
+/* 削除 */
+details.card summary{font-weight:bold;font-size:18px;cursor:pointer}
+.chk{display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid #eee}
+.chk span.small{margin-left:auto}
+.grp{font-weight:bold;background:#f1f5f9;padding:6px 8px;border-radius:8px;margin-top:8px}
+
+/* QR */
+.qr-settings{background:#eff6ff;border-radius:12px;padding:12px;margin-bottom:12px}
+.qr-page{background:#fff;border:1px solid #ddd;border-radius:12px;padding:12px;margin-top:12px}
+.qr-page-title{font-weight:bold;font-size:16px;margin-bottom:8px}
+.qr-grid{display:grid;gap:10px}
+.qr-item{border:2px solid #333;border-radius:10px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px;min-width:0;min-height:0}
+.qr-number{font-weight:900;font-size:20px;margin-bottom:6px}
+.qrcode{display:flex;align-items:center;justify-content:center;width:100%;min-height:0}
+.qrcode canvas{display:block;width:var(--qr-size,55mm)!important;height:var(--qr-size,55mm)!important;max-width:100%;max-height:100%;object-fit:contain}
+.qrcode img{display:none!important}
+
+/* 通知 */
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1e293b;color:#fff;padding:12px 18px;border-radius:12px;z-index:50;display:none;max-width:90%;text-align:center}
+
+@media(max-width:600px){
+  .sgrid,.tgrid{grid-template-columns:repeat(4,1fr)}
+  .lastno{font-size:58px}.count{font-size:46px}
+  .row.stack{flex-direction:column}
+}
+
+@media print{
+  @page{size:A4 portrait;margin:10mm}
+  html,body{width:210mm;margin:0;padding:0;background:#fff!important}
+  header,.noprint,#toast{display:none!important}
+  .wrap{padding:0;max-width:none}
+  #view-qr .card{background:#fff;padding:0;margin:0;border-radius:0}
+  .qr-page{width:190mm;height:277mm;margin:0;padding:0;border:0;border-radius:0;background:#fff;break-after:page;page-break-after:always;overflow:hidden}
+  .qr-page:last-child{break-after:auto;page-break-after:auto}
+  .qr-page-title{display:none}
+  .qr-grid{width:190mm;height:277mm;gap:4mm!important}
+  .qr-item{border:.5mm solid #333;border-radius:3mm;padding:4mm;break-inside:avoid;overflow:hidden}
+  .qr-number{font-size:16pt;line-height:1.1;margin-bottom:3mm}
+  .qrcode{flex:1}
+  .qr-item.empty{border:0;background:transparent}
+}
+</style>
 </head>
 <body>
-<main>
-  <h1>共通設定・データ管理</h1>
-  <p class="muted">新しい共通基盤の確認用画面です。既存の宿題回収画面は変更しません。</p>
 
-  <section class="panel">
-    <h2>学級設定</h2>
-    <div class="grid">
-      <div><label for="year">年度（西暦）</label><input id="year" type="number" min="2000" max="2100"></div>
-      <div><label for="grade">学年</label><select id="grade"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
-      <div><label for="classNumber">組</label><input id="classNumber" type="number" min="1" max="20"></div>
-      <div><label for="classSize">学級人数</label><input id="classSize" type="number" min="1" max="60"></div>
+<header>
+  <button id="backBtn" onclick="goHome()">← ホーム</button>
+  <h1 id="title">学習提出管理</h1>
+  <select id="yearSel" onchange="changeYear(this.value)"></select>
+</header>
+
+<div class="wrap">
+
+<!-- ================= ホーム ================= -->
+<div id="view-home" class="view active">
+  <div class="home-title">
+    <div class="ico">🏫</div>
+    <h2>学習提出管理</h2>
+    <p>宿題・ドリル・QRコードを簡単管理</p>
+    <p class="small" id="homeInfo" style="margin-top:6px"></p>
+  </div>
+  <div class="menu" onclick="nav('hw')">
+    <div class="tile t-blue">📝</div>
+    <div class="tx"><b>宿題回収</b><span>宿題の提出状況を記録・確認する</span></div>
+    <div class="arrow">›</div>
+  </div>
+  <div class="menu" onclick="nav('drill')">
+    <div class="tile t-green">📖</div>
+    <div class="tx"><b>ドリル回収</b><span>ドリルの回収と未提出者を確認する</span></div>
+    <div class="arrow">›</div>
+  </div>
+  <div class="menu" onclick="nav('qr')">
+    <div class="tile t-purple">🔳</div>
+    <div class="tx"><b>QRコード作成</b><span>児童番号のQRコードを作成・印刷する</span></div>
+    <div class="arrow">›</div>
+  </div>
+  <div class="menu" onclick="nav('set')">
+    <div class="tile t-gray">⚙️</div>
+    <div class="tx"><b>年度・学級設定とデータ</b><span>年度の切替・保存・復元・バックアップ</span></div>
+    <div class="arrow">›</div>
+  </div>
+</div>
+
+<!-- ================= 宿題回収 ================= -->
+<div id="view-hw" class="view">
+
+  <div class="card">
+    <button id="hwScanBtn" class="scan" onclick="scHw.toggle()">🔊 スキャン開始</button>
+    <button class="cam" onclick="scHw.sw()">🤳 カメラ切替</button>
+    <div class="reader"><div id="hwReader"></div></div>
+    <div class="last">
+      <small class="small">最後に入力した番号</small>
+      <div id="hwLastNo" class="lastno">--</div>
+      <div id="hwLastMsg" class="lastmsg">QRを読み取るか、番号を入力してください</div>
     </div>
-    <label for="qrPrefix">QRコード番号（自動生成・変更可）</label>
-    <input id="qrPrefix" inputmode="numeric">
-    <div class="actions">
-      <button id="saveSettings">設定を保存</button>
-      <button id="createDataset" class="secondary">新しい年度・学級データを作成</button>
+    <div class="row">
+      <input id="hwManual" type="number" inputmode="numeric" placeholder="出席番号を入力" style="margin:0" onkeydown="if(event.key==='Enter')hwManual()">
+      <button class="blue" style="flex:none" onclick="hwManual()">提出にする</button>
     </div>
-  </section>
+  </div>
 
-  <section class="panel">
-    <h2>既存データの移行</h2>
-    <p>旧システムの保存データを2026年度としてコピーします。元の保存データは削除しません。</p>
-    <div class="notice warning">移行先に同じ年度・学級のデータがある場合、上書きせず中止します。移行は同じ端末・同じブラウザで実行してください。</div>
-    <div class="actions"><button id="migrate">旧データを2026年度として移行</button></div>
-  </section>
-
-  <section class="panel">
-    <h2>全データの保存</h2>
-    <p>現在選択している年度・学級のデータをJSON形式で保存します。</p>
-    <div class="actions"><button id="export">JSONバックアップを保存</button></div>
-  </section>
-
-  <section class="panel">
-    <h2>バックアップから復元</h2>
-    <label for="backupFile">JSONバックアップファイル</label>
-    <input id="backupFile" type="file" accept="application/json,.json">
-    <div class="actions">
-      <button id="preview" class="secondary">内容を確認</button>
-      <button id="restore" class="danger" disabled>新しい年度・学級として復元</button>
+  <div class="card">
+    <div id="hwCount" class="count">0 / 0</div>
+    <div style="text-align:center;color:#666" id="hwCountLabel">提出状況</div>
+    <div class="progress"><div id="hwBar" class="bar"></div></div>
+    <div id="hwInfo" class="small" style="text-align:center;margin-top:7px"></div>
+    <div id="hwRemaining" class="remaining">
+      <div id="hwRemTitle" class="remaining-title"></div>
+      <div id="hwRemList" class="nums"></div>
     </div>
-    <p class="muted">この初期版では既存データへの上書き復元を画面から実行できません。既存データを守るため、同じ年度・学級への復元は別途確認工程を設けます。</p>
-  </section>
+  </div>
 
-  <section class="panel">
-    <h2>処理結果</h2>
-    <div id="status" class="notice" role="status">準備できました。</div>
-  </section>
-</main>
-<script src="../common/storage.js"></script>
-<script src="../common/migration.js"></script>
-<script src="../common/backup.js"></script>
-<script src="./settings.js"></script>
+  <div class="card">
+    <h2>👆 一覧から操作</h2>
+    <div class="small" style="margin-bottom:8px">児童の番号をタップします。モードで操作を切り替えられます。</div>
+    <div class="modes">
+      <button id="hwModeSubmit" onclick="setHwMode('submit')">提出／未提出</button>
+      <button id="hwModeAbsent" onclick="setHwMode('absent')">欠席</button>
+      <button id="hwModeOff" onclick="setHwMode('off')">この日対象外</button>
+    </div>
+    <div id="hwGrid" class="sgrid"></div>
+    <div class="small" style="margin-top:8px">緑＝提出済　赤枠＝未提出　灰＝欠席／対象外。提出済みを「提出／未提出」モードでタップすると未提出に戻ります。</div>
+  </div>
+
+  <div class="card">
+    <h2>📝 宿題と提出日</h2>
+    <select id="hwTaskSel" onchange="changeHwTask()"></select>
+    <div id="hwTaskInfo" class="info"></div>
+    <div class="row">
+      <button class="blue" onclick="addTask()">＋ 宿題追加</button>
+    </div>
+    <div class="small">提出日（タップで切り替え）</div>
+    <div id="hwDates" class="dates"></div>
+    <input id="hwDateInput" type="date">
+    <button class="green" style="width:100%" onclick="addDate()">＋ この日を提出日に追加</button>
+  </div>
+
+  <div class="card">
+    <h2>⏸ 対象外（宿題単位）</h2>
+    <div class="small" style="margin-bottom:8px">OFFにした児童は、この宿題すべての提出日で対象外になります。</div>
+    <div class="row">
+      <button class="green" onclick="allTargets(true)">全員ON</button>
+      <button class="gray" onclick="allTargets(false)">全員OFF</button>
+    </div>
+    <div id="hwTargets" class="tgrid"></div>
+  </div>
+
+  <div class="card">
+    <h2>📊 提出状況一覧</h2>
+    <div class="small">⭕＝提出　❌＝未提出　—＝対象外・欠席　／　最後の列は提出率</div>
+    <div class="row" style="margin-top:8px">
+      <button class="green" onclick="exportHwCSV()">📥 CSV保存</button>
+    </div>
+    <div id="hwMatrix"></div>
+  </div>
+
+  <details class="card" id="hwDelBox">
+    <summary>🗑 宿題・提出日の削除</summary>
+    <div id="hwDelBody" style="margin-top:10px"></div>
+  </details>
+</div>
+
+<!-- ================= ドリル回収 ================= -->
+<div id="view-drill" class="view">
+
+  <div class="card">
+    <h2>📖 ドリル</h2>
+    <select id="drSel" onchange="changeDrill()"></select>
+    <div id="drInfo" class="info"></div>
+    <div class="row stack">
+      <button class="blue" onclick="newDrill()">＋ 新しい回収</button>
+      <button class="gray" id="drCloseBtn" onclick="toggleDrillClosed()">回収終了</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div id="drCount" class="count">0 / 0</div>
+    <div style="text-align:center;color:#666">回収状況</div>
+    <div class="progress"><div id="drBar" class="bar"></div></div>
+    <div id="drInfo2" class="small" style="text-align:center;margin-top:7px"></div>
+    <div id="drRemaining" class="remaining">
+      <div id="drRemTitle" class="remaining-title"></div>
+      <div id="drRemList" class="nums"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <button id="drScanBtn" class="scan" onclick="scDr.toggle()">🔊 スキャン開始</button>
+    <button class="cam" onclick="scDr.sw()">🤳 カメラ切替</button>
+    <div class="reader"><div id="drReader"></div></div>
+    <div class="last">
+      <small class="small">最後に入力した番号</small>
+      <div id="drLastNo" class="lastno">--</div>
+      <div id="drLastMsg" class="lastmsg">QRを読み取るか、番号を入力してください</div>
+    </div>
+    <div class="row">
+      <input id="drManual" type="number" inputmode="numeric" placeholder="出席番号を入力" style="margin:0" onkeydown="if(event.key==='Enter')drManual()">
+      <button class="blue" style="flex:none" onclick="drManual()">提出にする</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>👆 一覧から操作</h2>
+    <div class="modes">
+      <button id="drModeSubmit" onclick="setDrMode('submit')">提出／未提出</button>
+      <button id="drModeOff" onclick="setDrMode('off')">対象外</button>
+    </div>
+    <div id="drGrid" class="sgrid"></div>
+    <div class="small" style="margin-top:8px">提出済みを「提出／未提出」モードでタップすると未提出に戻ります。</div>
+  </div>
+
+  <div class="card">
+    <h2>📥 記録の出力</h2>
+    <button class="green" style="width:100%" onclick="exportDrillCSV()">選択中のドリルをCSV保存</button>
+  </div>
+
+  <details class="card">
+    <summary>🗑 ドリル回収記録の削除</summary>
+    <div id="drDelBody" style="margin-top:10px"></div>
+  </details>
+</div>
+
+<!-- ================= QRコード作成 ================= -->
+<div id="view-qr" class="view">
+  <div class="card">
+    <h2 class="noprint">🔳 QRコード作成</h2>
+    <div class="info noprint" id="qrClassInfo"></div>
+    <div class="qr-settings noprint">
+      <div style="font-weight:bold;margin-bottom:8px">📄 A4 1枚あたりの人数</div>
+      <select id="qrPerPage" onchange="makeQR()">
+        <option value="2">2人 / 枚</option><option value="3">3人 / 枚</option>
+        <option value="4">4人 / 枚</option><option value="5">5人 / 枚</option>
+        <option value="6" selected>6人 / 枚</option><option value="7">7人 / 枚</option>
+        <option value="8">8人 / 枚</option><option value="9">9人 / 枚</option>
+        <option value="10">10人 / 枚</option>
+      </select>
+      <div id="qrPageInfo" class="small"></div>
+    </div>
+    <div class="row noprint">
+      <button class="blue" onclick="makeQR()">🔳 QRコードを作成</button>
+      <button class="green" onclick="printQR()">🖨️ 印刷</button>
+    </div>
+    <div class="small noprint">クラス番号・学級人数は「年度・学級設定」で変更できます。QRの内容は「クラス番号＋出席番号」です（例：3101）。</div>
+    <div id="qrgrid" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<!-- ================= 設定・データ ================= -->
+<div id="view-set" class="view">
+
+  <div class="card">
+    <h2>📅 年度</h2>
+    <div class="small" style="margin-bottom:8px">年度は4月始まりです。年度をまたいだ自動引き継ぎはしません（新しい年度は空の状態で始まります）。</div>
+    <select id="setYearSel" onchange="changeYear(this.value)"></select>
+    <div class="row">
+      <button class="blue" onclick="addYear()">＋ 年度を追加</button>
+      <button class="red" onclick="deleteYear()">🗑 この年度を削除</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>⚙️ 学級設定（<span id="setYearLabel"></span>）</h2>
+    <div class="small" style="margin-bottom:8px">宿題・ドリル・QRコードで共通に使われます。</div>
+    <label>クラス番号</label>
+    <input id="prefix" type="number" min="1" max="99">
+    <label>学級人数</label>
+    <input id="size" type="number" min="1" max="99">
+    <button class="green" style="width:100%" onclick="saveClass()">💾 設定を保存</button>
+  </div>
+
+  <div class="card">
+    <h2>💾 データの保存・復元</h2>
+    <div class="small" style="margin-bottom:8px">全年度のデータをJSONファイルで保存・復元できます。復元の前には自動でバックアップを作ります。</div>
+    <div class="row stack">
+      <button class="green" onclick="exportJSON()">📤 JSONで保存</button>
+      <button class="blue" onclick="$('importFile').click()">📥 JSONから復元</button>
+    </div>
+    <input id="importFile" type="file" accept=".json,application/json" style="display:none" onchange="importJSON(this)">
+    <div id="legacyBox"></div>
+  </div>
+
+  <div class="card">
+    <h2>🛟 自動バックアップ</h2>
+    <div class="small" style="margin-bottom:8px">移行・削除・復元の前に作成されます（新しい順に最大5件）。</div>
+    <div id="backupList"></div>
+  </div>
+</div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* =========================================================
+   共通
+========================================================= */
+const $=id=>document.getElementById(id);
+const esc=v=>String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const pad=n=>String(n).padStart(2,"0");
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());};
+const fiscal=()=>{const d=new Date();return String(d.getMonth()>=3?d.getFullYear():d.getFullYear()-1);};
+const uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+""+Math.random().toString(16).slice(2);
+const nowTime=()=>new Date().toLocaleTimeString("ja-JP");
+
+let toastTimer=null;
+function toast(msg){
+  const t=$("toast");t.textContent=msg;t.style.display="block";
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.style.display="none",3500);
+}
+
+function dl(name,text,mime){
+  const u=URL.createObjectURL(new Blob([text],{type:mime}));
+  const a=document.createElement("a");a.href=u;a.download=name;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(u),1000);
+}
+
+/* =========================================================
+   データ構造
+   S = { ver, year, years:{ "2026":{ prefix,size,tasks[],records{},drills[] } } }
+   task   = { id,name,dates[],targetOff[] }
+   record = records["taskId|date"] = { submitted{番号:{time}}, absent[], off[] }
+   drill  = { id,name,date,submitted{},off[],closed }
+========================================================= */
+const LS="lsm_v1", BK="lsm_backups_v1", LEGACY="lsm_legacy_backup";
+let S=null;
+
+const newYearData=()=>({prefix:"01",size:30,tasks:[],records:{},drills:[]});
+const Y=()=>S.years[S.year];
+
+function normalize(st){
+  Object.values(st.years).forEach(y=>{
+    y.prefix=String(y.prefix||"01").padStart(2,"0");
+    y.size=parseInt(y.size,10)||30;
+    y.tasks=(y.tasks||[]).map(t=>({id:t.id,name:t.name,dates:Array.isArray(t.dates)?t.dates:[],targetOff:Array.isArray(t.targetOff)?t.targetOff:[]}));
+    y.records=y.records||{};
+    Object.values(y.records).forEach(r=>{r.submitted=r.submitted||{};r.absent=r.absent||[];r.off=r.off||[];});
+    y.drills=(y.drills||[]).map(d=>({id:d.id,name:d.name,date:d.date||"",submitted:d.submitted||{},off:d.off||[],closed:!!d.closed}));
+  });
+  return st;
+}
+
+function ensureYear(){
+  if(!S.years||!Object.keys(S.years).length)S.years={[fiscal()]:newYearData()};
+  if(!S.years[S.year]){
+    const keys=Object.keys(S.years).sort();
+    S.year=S.years[fiscal()]?fiscal():keys[keys.length-1];
+  }
+}
+
+function save(){
+  try{localStorage.setItem(LS,JSON.stringify(S));}
+  catch(e){alert("保存できませんでした。端末の空き容量を確認してください。");}
+}
+
+/* ---- バックアップ ---- */
+function getBackups(){try{return JSON.parse(localStorage.getItem(BK)||"[]")||[];}catch{return[];}}
+function makeBackup(reason){
+  let list=getBackups();
+  list.unshift({t:Date.now(),reason,data:JSON.stringify(S)});
+  list=list.slice(0,5);
+  for(;;){
+    try{localStorage.setItem(BK,JSON.stringify(list));break;}
+    catch(e){ if(list.length<=1)break; list.pop(); }
+  }
+}
+
+/* ---- 旧「宿題提出スキャナー」からの移行 ---- */
+function migrateLegacy(){
+  const dump={};
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k&&k.startsWith("hs_"))dump[k]=localStorage.getItem(k);
+  }
+  if(!Object.keys(dump).length)return null;
+  try{localStorage.setItem(LEGACY,JSON.stringify({t:Date.now(),dump}));}catch{}
+
+  const ver=dump["hs_tasks_v2"]?"v2":"v1";
+  const y=newYearData();
+  y.size=parseInt(dump["hs_size_"+ver]||"37",10)||37;
+  y.prefix=String(dump["hs_prefix_"+ver]||"31").padStart(2,"0");
+  try{y.tasks=JSON.parse(dump["hs_tasks_"+ver]||"[]")||[];}catch{y.tasks=[];}
+  const pre="hs_data_"+ver+"_";
+  Object.keys(dump).forEach(k=>{
+    if(!k.startsWith(pre))return;
+    const rest=k.slice(pre.length),i=rest.lastIndexOf("_");
+    if(i<0)return;
+    try{
+      const x=JSON.parse(dump[k]);
+      if(x)y.records[rest.slice(0,i)+"|"+rest.slice(i+1)]={submitted:x.submitted||{},absent:x.absent||[],off:[]};
+    }catch{}
+  });
+  try{y.drills=JSON.parse(dump["hs_drills_v1"]||"[]")||[];}catch{y.drills=[];}
+  return y;
+}
+
+function loadState(){
+  try{S=JSON.parse(localStorage.getItem(LS)||"null");}catch{S=null;}
+  if(!S||!S.years){
+    const old=migrateLegacy();
+    if(old){
+      S={ver:1,year:"2026",years:{"2026":old}};
+      normalize(S);
+      makeBackup("移行直後（旧データを2026年度として取り込み）");
+      setTimeout(()=>toast("旧データを2026年度として移行しました"),400);
+    }else{
+      S={ver:1,year:fiscal(),years:{[fiscal()]:newYearData()}};
+    }
+    save();
+  }
+  normalize(S);
+  ensureYear();
+}
+
+/* ---- 学級まわり ---- */
+const size=()=>Y().size;
+const prefix=()=>Y().prefix;
+const ids=()=>Array.from({length:size()},(_,i)=>pad(i+1));
+function idOf(v){
+  v=String(v).trim().replace(/[０-９]/g,s=>String.fromCharCode(s.charCodeAt(0)-65248));
+  if(!/^\d+$/.test(v))return null;
+  const n=(v.length===4&&v.slice(0,2)===prefix())?+v.slice(2):+v;
+  return n>=1&&n<=size()?pad(n):null;
+}
+
+/* =========================================================
+   画面遷移
+========================================================= */
+const TITLES={home:"学習提出管理",hw:"宿題回収",drill:"ドリル回収",qr:"QRコード作成",set:"年度・学級設定"};
+let cur="home";
+
+function nav(v){location.hash=v;}
+function goHome(){location.hash="home";}
+
+async function show(v){
+  if(!TITLES[v])v="home";
+  await scHw.stop();await scDr.stop();
+  cur=v;
+  document.querySelectorAll(".view").forEach(e=>e.classList.toggle("active",e.id==="view-"+v));
+  $("title").textContent=TITLES[v];
+  $("backBtn").classList.toggle("show",v!=="home");
+  renderCurrent();
+  window.scrollTo(0,0);
+}
+window.addEventListener("hashchange",()=>show(location.hash.slice(1)||"home"));
+
+function renderCurrent(){
+  renderYearSel();
+  if(cur==="home")renderHome();
+  else if(cur==="hw")renderHw();
+  else if(cur==="drill")renderDrill();
+  else if(cur==="qr")makeQR();
+  else if(cur==="set")renderSet();
+}
+
+/* =========================================================
+   年度
+========================================================= */
+function renderYearSel(){
+  const keys=Object.keys(S.years).sort();
+  const html=keys.map(k=>`<option value="${k}">${k}年度</option>`).join("");
+  $("yearSel").innerHTML=html;$("yearSel").value=S.year;
+  const s=$("setYearSel");if(s){s.innerHTML=html;s.value=S.year;}
+}
+
+async function changeYear(v){
+  if(!S.years[v])return;
+  await scHw.stop();await scDr.stop();
+  S.year=v;save();
+  hwT=null;hwD="";dId=null;
+  renderCurrent();
+}
+
+function addYear(){
+  const v=prompt("追加する年度を入力してください（例：2027）",String(+S.year+1));
+  if(!v)return;
+  if(!/^\d{4}$/.test(v.trim())||+v<2000||+v>2100)return alert("4桁の西暦で入力してください。");
+  const y=v.trim();
+  if(S.years[y]){changeYear(y);return alert(y+"年度はすでにあります。切り替えました。");}
+  makeBackup("年度追加前");
+  S.years[y]=newYearData();
+  save();changeYear(y);
+  toast(y+"年度を追加しました。クラス番号と人数を設定してください");
+}
+
+function deleteYear(){
+  const keys=Object.keys(S.years);
+  if(keys.length<=1)return alert("年度が1つしかないため削除できません。");
+  const y=Y();
+  if(!confirm(`${S.year}年度のデータをすべて削除します。\n（宿題 ${y.tasks.length}件、ドリル ${y.drills.length}件）\n\n削除前にバックアップを作成します。よろしいですか？`))return;
+  makeBackup(S.year+"年度の削除前");
+  delete S.years[S.year];
+  ensureYear();save();
+  hwT=null;hwD="";dId=null;
+  renderCurrent();
+  toast("削除しました（自動バックアップから復元できます）");
+}
+
+/* =========================================================
+   音・スキャナー
+========================================================= */
+let audio=null;
+function audioCtx(){
+  if(!audio)audio=new(window.AudioContext||window.webkitAudioContext)();
+  if(audio.state==="suspended")audio.resume();
+}
+function beep(f){
+  try{
+    audioCtx();
+    const o=audio.createOscillator(),g=audio.createGain();
+    o.frequency.value=f;g.gain.value=.12;
+    o.connect(g);g.connect(audio.destination);
+    o.start();o.stop(audio.currentTime+.12);
+  }catch{}
+}
+
+function mkScanner(p,onCode){
+  let sc=null,cams=[],ci=0,run=false,lastC="",lastT=0;
+  const ui=()=>{const b=$(p+"ScanBtn");if(!b)return;b.textContent=run?"⏹ スキャン停止":"🔊 スキャン開始";b.classList.toggle("stop",run);};
+  const ok=t=>{const n=Date.now();if(t===lastC&&n-lastT<1200)return;lastC=t;lastT=n;onCode(t);};
+  async function begin(cid){
+    sc=new Html5Qrcode(p+"Reader");
+    await sc.start(cid,{fps:20,qrbox:(w,h)=>{const s=Math.floor(Math.min(w,h)*.75);return{width:s,height:s};},aspectRatio:1},ok,()=>{});
+    run=true;ui();
+  }
+  async function start(){
+    if(typeof Html5Qrcode==="undefined")return alert("QR読み取りの部品を読み込めていません。一度オンラインで開いてから、もう一度お試しください。");
+    try{
+      audioCtx();
+      cams=await Html5Qrcode.getCameras();
+      if(!cams.length)return alert("カメラがありません。");
+      ci=Math.max(0,cams.findIndex(c=>/back|rear|environment/i.test(c.label)));
+      await begin(cams[ci].id);
+    }catch(e){console.error(e);alert("カメラを起動できませんでした。ブラウザのカメラ許可を確認してください。");}
+  }
+  async function stop(){
+    if(sc){try{await sc.stop();}catch{}try{sc.clear();}catch{}}
+    sc=null;run=false;ui();
+  }
+  async function sw(){
+    if(!run)return alert("まずスキャンを開始してください。");
+    if(cams.length<2)return alert("切替可能なカメラがありません。");
+    ci=(ci+1)%cams.length;
+    try{await sc.stop();sc.clear();}catch{}
+    sc=null;await begin(cams[ci].id);
+  }
+  return{toggle:async()=>run?stop():start(),sw,stop};
+}
+const scHw=mkScanner("hw",t=>hwOnCode(t));
+const scDr=mkScanner("dr",t=>drOnCode(t));
+
+function showLast(p,r){
+  $(p+"LastNo").textContent=r.no;
+  $(p+"LastMsg").textContent=r.msg;
+  beep(r.f);
+}
+
+/* =========================================================
+   ホーム
+========================================================= */
+function renderHome(){
+  $("homeInfo").textContent=`${S.year}年度　クラス${+prefix()}　${size()}人`;
+}
+
+/* =========================================================
+   宿題回収
+========================================================= */
+let hwT=null,hwD="",hwMode="submit",hwDelTab="task";
+const T=()=>Y().tasks.find(t=>t.id===hwT);
+
+function rec(tid,d,create){
+  const Yr=Y(),k=tid+"|"+d;
+  let r=Yr.records[k];
+  if(!r){r={submitted:{},absent:[],off:[]};if(create)Yr.records[k]=r;}
+  return r;
+}
+function stat(t,r,id){
+  if((t.targetOff||[]).includes(id)||r.off.includes(id))return"off";
+  if(r.absent.includes(id))return"absent";
+  if(r.submitted[id])return"done";
+  return"todo";
+}
+function pickHw(){
+  const Yr=Y();
+  if(!Yr.tasks.find(t=>t.id===hwT))hwT=Yr.tasks[0]?.id||null;
+  const t=T();
+  if(!t){hwD="";return;}
+  if(!t.dates.includes(hwD))hwD=t.dates.includes(today())?today():(t.dates.at(-1)||"");
+}
+
+function renderHw(){
+  pickHw();
+  const Yr=Y(),s=$("hwTaskSel");
+  s.innerHTML="";
+  if(!Yr.tasks.length){
+    s.innerHTML='<option value="">宿題が登録されていません</option>';s.disabled=true;
+  }else{
+    s.disabled=false;
+    Yr.tasks.forEach(t=>{const o=document.createElement("option");o.value=t.id;o.textContent=t.name;s.appendChild(o);});
+    s.value=hwT;
+  }
+  $("hwDateInput").value=today();
+  renderHwTaskInfo();
+  renderHwTargets();
+  renderHwDel();
+  renderHwLive();
+}
+
+function renderHwTaskInfo(){
+  const t=T(),info=$("hwTaskInfo"),box=$("hwDates");
+  if(!t){
+    info.innerHTML='<div class="empty-task">まだ宿題が登録されていません。<br>「＋ 宿題追加」→「提出日を追加」の順に登録してください。</div>';
+    box.innerHTML="";return;
+  }
+  info.innerHTML=`<strong>${esc(t.name)}</strong><br><span class="small">${
+    !t.dates.length?"📅 提出日がまだ登録されていません。":
+    (hwD===today()?"📅 表示中：今日の提出日":"表示中："+esc(hwD))}</span>`;
+  box.innerHTML=t.dates.map(d=>`<span class="dchip ${d===hwD?"on":""}" onclick="pickHwDate('${esc(d)}')">${esc(d.slice(5))}</span>`).join("");
+}
+
+function renderHwLive(){
+  const t=T(),active=!!t&&!!hwD;
+  const r=active?rec(t.id,hwD):null;
+  let den=0,sub=0,abs=0,off=0,rem=[];
+  if(active){
+    ids().forEach(id=>{
+      const s=stat(t,r,id);
+      if(s==="off")off++;
+      else if(s==="absent")abs++;
+      else{den++;if(s==="done")sub++;else rem.push(id);}
+    });
+  }
+  const rate=den?Math.round(sub/den*100):0;
+  $("hwCount").textContent=active?`${sub} / ${den}`:"—";
+  $("hwCountLabel").textContent=active?`${t.name}　${hwD}　提出率 ${rate}%`:"提出状況";
+  $("hwBar").style.width=(active?rate:0)+"%";
+  $("hwInfo").textContent=active?`欠席 ${abs}人　対象外 ${off}人（提出率の計算から除外）`:"宿題と提出日を登録してください";
+  $("hwRemaining").classList.toggle("ok",active&&!rem.length);
+  $("hwRemTitle").textContent=!active?"📅 提出日を登録してください":(rem.length?`🔴 あと${rem.length}人`:"🎉 全員提出！！");
+  $("hwRemList").innerHTML=rem.map(x=>`<span class="num">${x}</span>`).join("");
+
+  ["Submit","Absent","Off"].forEach(m=>$("hwMode"+m).classList.toggle("on",hwMode===m.toLowerCase()));
+  $("hwGrid").innerHTML=ids().map(id=>{
+    const s=active?stat(t,r,id):"todo";
+    const lb={done:"⭕",todo:"未",absent:"欠席",off:"—"}[s];
+    return `<div class="sc ${s}" onclick="hwTap('${id}')">${id}<small>${lb}</small></div>`;
+  }).join("");
+  renderHwMatrix();
+}
+
+function setHwMode(m){hwMode=m;renderHwLive();}
+function changeHwTask(){hwT=$("hwTaskSel").value||null;hwD="";renderHw();}
+function pickHwDate(d){hwD=d;renderHwTaskInfo();renderHwLive();}
+
+function addTask(){
+  const n=prompt("宿題の名前を入力してください");
+  if(!n||!n.trim())return;
+  const t={id:uid(),name:n.trim(),dates:[],targetOff:[]};
+  Y().tasks.push(t);hwT=t.id;hwD="";
+  save();renderHw();
+  toast(`「${t.name}」を追加しました。次に提出日を追加してください`);
+}
+
+function addDate(){
+  const t=T(),d=$("hwDateInput").value;
+  if(!t)return alert("先に宿題を追加してください。");
+  if(!d)return alert("日付を選択してください。");
+  if(t.dates.includes(d))return alert("その日はすでに登録されています。");
+  t.dates.push(d);t.dates.sort();hwD=d;
+  save();renderHw();
+}
+
+function hwSubmit(text){
+  const t=T();
+  if(!t||!hwD)return{no:"—",msg:"📅 先に宿題と提出日を登録してください",f:220};
+  const id=idOf(text);
+  if(!id)return{no:"?",msg:"❌ 無効な番号",f:220};
+  const r=rec(t.id,hwD),s=stat(t,r,id);
+  if(s==="off")return{no:id,msg:"⏸ 提出対象外",f:330};
+  if(s==="absent")return{no:id,msg:"🚫 欠席登録",f:330};
+  if(s==="done")return{no:id,msg:"⚠️ すでに提出済み",f:440};
+  rec(t.id,hwD,true).submitted[id]={time:nowTime()};
+  save();
+  return{no:id,msg:"✅ 提出しました！",f:880};
+}
+function hwOnCode(text){showLast("hw",hwSubmit(text));renderHwLive();}
+function hwManual(){
+  const i=$("hwManual");if(!i.value.trim())return;
+  showLast("hw",hwSubmit(i.value));
+  i.value="";i.focus();renderHwLive();
+}
+
+function hwTap(id){
+  const t=T();
+  if(!t||!hwD)return alert("先に宿題と提出日を登録してください。");
+  if(t.targetOff.includes(id))return alert(`${id}番は、この宿題全体で対象外です。\n「対象外（宿題単位）」で変更できます。`);
+  const r=rec(t.id,hwD,true);
+  if(hwMode==="submit"){
+    if(r.off.includes(id))return alert(`${id}番は、この日は対象外です。「この日対象外」モードでタップすると解除できます。`);
+    if(r.absent.includes(id))return alert(`${id}番は欠席登録中です。「欠席」モードでタップすると解除できます。`);
+    if(r.submitted[id])delete r.submitted[id];
+    else r.submitted[id]={time:nowTime(),manual:true};
+  }else if(hwMode==="absent"){
+    if(r.off.includes(id))return alert(`${id}番は、この日は対象外です。`);
+    if(r.absent.includes(id))r.absent=r.absent.filter(x=>x!==id);
+    else{r.absent.push(id);delete r.submitted[id];}
+  }else{
+    if(r.off.includes(id))r.off=r.off.filter(x=>x!==id);
+    else{r.off.push(id);delete r.submitted[id];r.absent=r.absent.filter(x=>x!==id);}
+  }
+  save();renderHwLive();
+}
+
+/* ---- 対象外（宿題単位） ---- */
+function renderHwTargets(){
+  const t=T(),box=$("hwTargets");
+  if(!t){box.innerHTML='<div class="small" style="grid-column:1/-1">宿題を追加すると設定できます。</div>';return;}
+  box.innerHTML=ids().map(id=>{
+    const on=!t.targetOff.includes(id);
+    return `<label class="target ${on?"":"off"}"><input type="checkbox" ${on?"checked":""} onchange="toggleTarget('${id}',this.checked)">${id}</label>`;
+  }).join("");
+}
+function toggleTarget(id,on){
+  const t=T();if(!t)return;
+  if(on)t.targetOff=t.targetOff.filter(x=>x!==id);
+  else if(!t.targetOff.includes(id))t.targetOff.push(id);
+  save();renderHwTargets();renderHwLive();
+}
+function allTargets(on){
+  const t=T();if(!t)return;
+  t.targetOff=on?[]:ids();
+  save();renderHwTargets();renderHwLive();
+}
+
+/* ---- 一覧 ---- */
+function columns(){
+  const a=[];
+  Y().tasks.forEach(t=>t.dates.forEach(d=>a.push({t,d})));
+  return a.sort((x,y)=>x.d.localeCompare(y.d)||x.t.name.localeCompare(y.t.name));
+}
+function cell(c,id){
+  const s=stat(c.t,rec(c.t.id,c.d),id);
+  return s==="done"?"⭕":s==="todo"?"❌":"—";
+}
+function rateOf(id,cs){
+  let s=0,n=0;
+  cs.forEach(c=>{const v=cell(c,id);if(v==="—")return;n++;if(v==="⭕")s++;});
+  return n?Math.round(s/n*100):null;
+}
+function renderHwMatrix(){
+  const cs=columns(),box=$("hwMatrix");
+  if(!cs.length){box.innerHTML='<div class="small" style="margin-top:8px">まだ提出日がありません。</div>';return;}
+  let h='<div class="tablewrap" style="margin-top:8px"><table class="matrix"><tr><th>番号</th>';
+  cs.forEach(c=>{h+=`<th>${esc(c.d.slice(5))}<br>${esc(c.t.name)}</th>`;});
+  h+="<th>提出率</th></tr>";
+  ids().forEach(id=>{
+    const r=rateOf(id,cs);
+    h+=`<tr><td><strong>${id}番</strong></td>`;
+    cs.forEach(c=>{h+=`<td>${cell(c,id)}</td>`;});
+    h+=`<td class="rate">${r===null?"—":r+"%"}</td></tr>`;
+  });
+  box.innerHTML=h+"</table></div>";
+}
+function csvText(rows){
+  return "\ufeff"+rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+}
+function exportHwCSV(){
+  const cs=columns();
+  if(!cs.length)return alert("提出日がありません。");
+  const rows=[["出席番号",...cs.map(c=>`${c.d} ${c.t.name}`),"提出率"]];
+  ids().forEach(id=>{
+    const r=rateOf(id,cs);
+    rows.push([id,...cs.map(c=>cell(c,id)),r===null?"":r+"%"]);
+  });
+  dl(`宿題提出一覧_${S.year}年度.csv`,csvText(rows),"text/csv;charset=utf-8");
+}
+
+/* ---- 削除（宿題名単位・提出日単位／1件・複数件） ---- */
+function renderHwDel(){
+  const Yr=Y(),b=$("hwDelBody");
+  let h=`<div class="row"><button class="${hwDelTab==="task"?"blue":"light"}" onclick="hwDelTab='task';renderHwDel()">宿題名単位</button>`+
+        `<button class="${hwDelTab==="date"?"blue":"light"}" onclick="hwDelTab='date';renderHwDel()">提出日単位</button></div>`;
+  if(!Yr.tasks.length){b.innerHTML=h+'<div class="empty-task">削除できる宿題がありません。</div>';return;}
+  if(hwDelTab==="task"){
+    h+='<div class="small">宿題を選ぶと、その宿題と全提出日の記録をまとめて削除します。</div>';
+    Yr.tasks.forEach(t=>{
+      h+=`<label class="chk"><input type="checkbox" class="delT" value="${esc(t.id)}"><b>${esc(t.name)}</b><span class="small">提出日 ${t.dates.length}件</span></label>`;
+    });
+  }else{
+    h+='<div class="small">提出日を選ぶと、その日の提出状況（⭕・❌・欠席・対象外）を削除します。宿題名は残ります。</div>';
+    Yr.tasks.forEach(t=>{
+      h+=`<div class="grp">${esc(t.name)}</div>`;
+      if(!t.dates.length)h+='<div class="small" style="padding:6px">提出日なし</div>';
+      t.dates.forEach(d=>{
+        const n=Object.keys(rec(t.id,d).submitted).length;
+        h+=`<label class="chk"><input type="checkbox" class="delD" data-t="${esc(t.id)}" value="${esc(d)}">${esc(d)}<span class="small">提出 ${n}人</span></label>`;
+      });
+    });
+  }
+  h+=`<div class="row" style="margin-top:10px"><button class="light" onclick="hwDelAll(true)">全選択</button><button class="light" onclick="hwDelAll(false)">選択解除</button></div>`+
+     `<button class="red" style="width:100%" onclick="hwDelRun()">🗑 選択したものを削除</button>`;
+  b.innerHTML=h;
+}
+function hwDelAll(on){document.querySelectorAll(".delT,.delD").forEach(x=>x.checked=on);}
+function hwDelRun(){
+  const Yr=Y();
+  if(hwDelTab==="task"){
+    const sel=[...document.querySelectorAll(".delT:checked")].map(x=>x.value);
+    if(!sel.length)return alert("削除する宿題を選んでください。");
+    const names=sel.map(id=>Yr.tasks.find(t=>t.id===id)?.name).filter(Boolean);
+    if(!confirm(`次の宿題 ${sel.length}件を削除します。\n\n${names.map(n=>"・"+n).join("\n")}\n\n提出記録もすべて削除されます。削除前にバックアップを作成します。よろしいですか？`))return;
+    makeBackup("宿題削除前");
+    sel.forEach(id=>{
+      Object.keys(Yr.records).forEach(k=>{if(k.startsWith(id+"|"))delete Yr.records[k];});
+    });
+    Yr.tasks=Yr.tasks.filter(t=>!sel.includes(t.id));
+    toast(`${sel.length}件の宿題を削除しました`);
+  }else{
+    const sel=[...document.querySelectorAll(".delD:checked")].map(x=>({t:x.dataset.t,d:x.value}));
+    if(!sel.length)return alert("削除する提出日を選んでください。");
+    if(!confirm(`提出日 ${sel.length}件を削除します。\nその日の提出状況も削除されます。削除前にバックアップを作成します。よろしいですか？`))return;
+    makeBackup("提出日削除前");
+    sel.forEach(({t,d})=>{
+      const task=Yr.tasks.find(x=>x.id===t);
+      if(task)task.dates=task.dates.filter(x=>x!==d);
+      delete Yr.records[t+"|"+d];
+    });
+    toast(`${sel.length}件の提出日を削除しました`);
+  }
+  save();renderHw();
+}
+
+/* =========================================================
+   ドリル回収
+========================================================= */
+let dId=null,drMode="submit";
+const D=()=>Y().drills.find(x=>x.id===dId);
+const dStat=(d,id)=>d.off.includes(id)?"off":(d.submitted[id]?"done":"todo");
+
+function pickDrill(){if(!D())dId=Y().drills[0]?.id||null;}
+
+function renderDrill(){
+  pickDrill();
+  const Yr=Y(),s=$("drSel");
+  s.innerHTML="";
+  if(!Yr.drills.length){
+    s.innerHTML='<option value="">回収記録がありません</option>';s.disabled=true;
+  }else{
+    s.disabled=false;
+    Yr.drills.forEach(d=>{const o=document.createElement("option");o.value=d.id;o.textContent=`${d.date}　${d.name}${d.closed?"（終了）":"（回収中）"}`;s.appendChild(o);});
+    s.value=dId;
+  }
+  renderDrillDel();
+  renderDrillLive();
+}
+
+function renderDrillLive(){
+  const d=D(),active=!!d;
+  let den=0,sub=0,off=0,rem=[];
+  if(active)ids().forEach(id=>{
+    const s=dStat(d,id);
+    if(s==="off")off++;else{den++;if(s==="done")sub++;else rem.push(id);}
+  });
+  $("drInfo").innerHTML=active?`<strong>${esc(d.name)}</strong><br><span class="small">📅 ${esc(d.date)}　${d.closed?"回収終了":"回収中"}</span>`
+    :'<div class="empty-task">「＋ 新しい回収」から回収を開始してください。</div>';
+  $("drCloseBtn").textContent=d&&d.closed?"回収を再開":"回収終了";
+  $("drCloseBtn").style.display=active?"":"none";
+  $("drCount").textContent=active?`${sub} / ${den}`:"—";
+  $("drBar").style.width=(den?sub/den*100:0)+"%";
+  $("drInfo2").textContent=active?`対象外 ${off}人（回収率の計算から除外）`:"";
+  $("drRemaining").classList.toggle("ok",active&&!rem.length);
+  $("drRemTitle").textContent=!active?"📖 回収を開始してください":(rem.length?`🔴 未提出 ${rem.length}人`:"🎉 全員提出！！");
+  $("drRemList").innerHTML=rem.map(x=>`<span class="num">${x}</span>`).join("");
+  $("drModeSubmit").classList.toggle("on",drMode==="submit");
+  $("drModeOff").classList.toggle("on",drMode==="off");
+  $("drGrid").innerHTML=ids().map(id=>{
+    const s=active?dStat(d,id):"todo";
+    const lb={done:"⭕",todo:"未",off:"—"}[s];
+    return `<div class="sc ${s}" onclick="drTap('${id}')">${id}<small>${lb}</small></div>`;
+  }).join("");
+}
+
+function setDrMode(m){drMode=m;renderDrillLive();}
+function changeDrill(){dId=$("drSel").value||null;renderDrill();}
+
+function newDrill(){
+  const n=prompt("今回回収するドリルの名前を入力してください","漢字ドリル");
+  if(!n||!n.trim())return;
+  const d={id:uid(),name:n.trim(),date:today(),submitted:{},off:[],closed:false};
+  Y().drills.unshift(d);dId=d.id;
+  save();renderDrill();
+  toast(`「${d.name}」の回収を開始しました`);
+}
+function toggleDrillClosed(){
+  const d=D();if(!d)return;
+  if(!d.closed&&!confirm(`「${d.name}」の回収を終了しますか？\n終了後も記録は確認でき、再開もできます。`))return;
+  d.closed=!d.closed;save();renderDrill();
+}
+
+function drSubmit(text){
+  const d=D();
+  if(!d)return{no:"—",msg:"📖 先に「新しい回収」を開始してください",f:220};
+  if(d.closed)return{no:"—",msg:"🔒 この回収は終了しています",f:220};
+  const id=idOf(text);
+  if(!id)return{no:"?",msg:"❌ 無効な番号",f:220};
+  const s=dStat(d,id);
+  if(s==="off")return{no:id,msg:"⏸ 対象外",f:330};
+  if(s==="done")return{no:id,msg:"⚠️ すでに提出済み",f:440};
+  d.submitted[id]={time:nowTime()};save();
+  return{no:id,msg:"✅ ドリル提出済み！",f:880};
+}
+function drOnCode(t){showLast("dr",drSubmit(t));renderDrillLive();}
+function drManual(){
+  const i=$("drManual");if(!i.value.trim())return;
+  showLast("dr",drSubmit(i.value));
+  i.value="";i.focus();renderDrillLive();
+}
+function drTap(id){
+  const d=D();
+  if(!d)return alert("先に「新しい回収」を開始してください。");
+  if(d.closed)return alert("この回収は終了しています。「回収を再開」してから操作してください。");
+  if(drMode==="submit"){
+    if(d.off.includes(id))return alert(`${id}番は対象外です。「対象外」モードでタップすると解除できます。`);
+    if(d.submitted[id])delete d.submitted[id];
+    else d.submitted[id]={time:nowTime(),manual:true};
+  }else{
+    if(d.off.includes(id))d.off=d.off.filter(x=>x!==id);
+    else{d.off.push(id);delete d.submitted[id];}
+  }
+  save();renderDrillLive();
+}
+
+function exportDrillCSV(){
+  const d=D();if(!d)return alert("ドリルの回収記録がありません。");
+  const rows=[["出席番号","状態","提出時刻"]];
+  ids().forEach(id=>{
+    const s=dStat(d,id);
+    rows.push([id,s==="done"?"提出":s==="off"?"対象外":"未提出",d.submitted[id]?.time||""]);
+  });
+  dl(`ドリル回収_${d.name}_${d.date}.csv`,csvText(rows),"text/csv;charset=utf-8");
+}
+
+function renderDrillDel(){
+  const Yr=Y(),b=$("drDelBody");
+  if(!Yr.drills.length){b.innerHTML='<div class="empty-task">削除できる記録がありません。</div>';return;}
+  b.innerHTML=Yr.drills.map(d=>
+    `<label class="chk"><input type="checkbox" class="delDr" value="${esc(d.id)}"><b>${esc(d.name)}</b><span class="small">${esc(d.date)}　提出${Object.keys(d.submitted).length}人</span></label>`
+  ).join("")+
+  `<div class="row" style="margin-top:10px"><button class="light" onclick="document.querySelectorAll('.delDr').forEach(x=>x.checked=true)">全選択</button><button class="light" onclick="document.querySelectorAll('.delDr').forEach(x=>x.checked=false)">選択解除</button></div>`+
+  `<button class="red" style="width:100%" onclick="drDelRun()">🗑 選択したものを削除</button>`;
+}
+function drDelRun(){
+  const sel=[...document.querySelectorAll(".delDr:checked")].map(x=>x.value);
+  if(!sel.length)return alert("削除する回収記録を選んでください。");
+  if(!confirm(`ドリルの回収記録 ${sel.length}件を削除します。削除前にバックアップを作成します。よろしいですか？`))return;
+  makeBackup("ドリル記録削除前");
+  Y().drills=Y().drills.filter(d=>!sel.includes(d.id));
+  save();renderDrill();
+  toast(`${sel.length}件を削除しました`);
+}
+
+/* =========================================================
+   QRコード作成
+========================================================= */
+function qrLayout(n){return{rows:Math.ceil(n/2),cols:2};}
+function qrSizeMm(rows){return({1:"75mm",2:"60mm",3:"47mm",4:"38mm",5:"31mm"})[rows]||"31mm";}
+
+function makeQR(){
+  const grid=$("qrgrid");
+  $("qrClassInfo").textContent=`${S.year}年度　クラス番号 ${+prefix()}　学級人数 ${size()}人`;
+  grid.innerHTML="";
+  const perPage=parseInt($("qrPerPage").value,10);
+  const all=ids(),pages=Math.ceil(all.length/perPage);
+  $("qrPageInfo").textContent=`学級人数 ${size()}人 → A4 ${perPage}人/枚 → ${pages}ページ`;
+  if(typeof QRCode==="undefined"){
+    grid.innerHTML='<div class="empty-task">QRコード作成の部品を読み込めていません。一度オンラインで開いてから、もう一度お試しください。</div>';
+    return;
+  }
+  for(let p=0;p<pages;p++){
+    const box=document.createElement("div");box.className="qr-page";
+    const title=document.createElement("div");title.className="qr-page-title";
+    title.textContent=`QRコード ${p+1} / ${pages}`;box.appendChild(title);
+    const pg=document.createElement("div");pg.className="qr-grid";
+    const cur=all.slice(p*perPage,(p+1)*perPage);
+    const lay=qrLayout(cur.length);
+    pg.style.gridTemplateColumns=`repeat(${lay.cols},1fr)`;
+    pg.style.gridTemplateRows=`repeat(${lay.rows},1fr)`;
+    pg.style.setProperty("--qr-size",qrSizeMm(lay.rows));
+    cur.forEach(id=>{
+      const item=document.createElement("div");item.className="qr-item";
+      const num=document.createElement("div");num.className="qr-number";num.textContent=`${id}番`;
+      const q=document.createElement("div");q.className="qrcode";
+      item.appendChild(num);item.appendChild(q);pg.appendChild(item);
+      new QRCode(q,{text:prefix()+id,width:220,height:220,correctLevel:QRCode.CorrectLevel.H});
+      const cv=q.querySelector("canvas"),im=q.querySelector("img");
+      if(cv&&im)im.remove();
+    });
+    while(pg.children.length<lay.rows*lay.cols){
+      const e=document.createElement("div");e.className="qr-item empty";pg.appendChild(e);
+    }
+    box.appendChild(pg);grid.appendChild(box);
+  }
+}
+function printQR(){
+  if(!$("qrgrid").children.length)makeQR();
+  setTimeout(()=>window.print(),500);
+}
+
+/* =========================================================
+   設定・データ
+========================================================= */
+function renderSet(){
+  $("setYearLabel").textContent=S.year+"年度";
+  $("prefix").value=+prefix();
+  $("size").value=size();
+  renderBackups();
+  const lg=localStorage.getItem(LEGACY);
+  $("legacyBox").innerHTML=lg?'<button class="light" style="width:100%;margin-top:8px" onclick="dlLegacy()">🗂 移行前の旧データ（バックアップ）を保存</button>':"";
+}
+
+function saveClass(){
+  const s=+$("size").value,p=+$("prefix").value;
+  if(!(s>=1&&s<=99&&p>=1&&p<=99))return alert("設定値を確認してください（1〜99）。");
+  Y().size=s;Y().prefix=String(p).padStart(2,"0");
+  save();renderSet();toast("保存しました");
+}
+
+function exportJSON(){
+  dl(`学習提出管理_全データ_${today()}.json`,
+     JSON.stringify({app:"gakushu-teishutsu",ver:1,exportedAt:new Date().toISOString(),state:S},null,1),
+     "application/json");
+}
+function importJSON(inp){
+  const f=inp.files[0];inp.value="";
+  if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const o=JSON.parse(rd.result);
+      const st=o.state||o;
+      if(!st.years||typeof st.years!=="object"||!Object.keys(st.years).length)throw new Error("形式が違います");
+      normalize(st);
+      const ys=Object.keys(st.years).sort().map(y=>y+"年度").join("、");
+      if(!confirm(`このファイルから復元します。\n含まれる年度：${ys}\n\n現在のデータは置き換えられます。復元前にバックアップを作成します。よろしいですか？`))return;
+      makeBackup("復元前");
+      S={ver:1,year:st.year||fiscal(),years:st.years};
+      ensureYear();save();
+      hwT=null;hwD="";dId=null;
+      renderCurrent();toast("復元しました");
+    }catch(e){alert("このファイルは読み込めませんでした。このサイトで保存したJSONを選んでください。");}
+  };
+  rd.readAsText(f);
+}
+
+function renderBackups(){
+  const list=getBackups(),b=$("backupList");
+  if(!list.length){b.innerHTML='<div class="empty-task">バックアップはまだありません。</div>';return;}
+  b.innerHTML=list.map((x,i)=>{
+    const d=new Date(x.t);
+    const ts=`${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return `<div class="chk"><div><b>${ts}</b><br><span class="small">${esc(x.reason)}</span></div><button class="gray" style="margin-left:auto;padding:8px 12px" onclick="restoreBackup(${i})">復元</button></div>`;
+  }).join("");
+}
+function restoreBackup(i){
+  const x=getBackups()[i];if(!x)return;
+  if(!confirm("このバックアップに戻します。現在のデータは置き換えられます（復元前にもう一度バックアップを作成します）。よろしいですか？"))return;
+  try{
+    const st=normalize(JSON.parse(x.data));
+    makeBackup("バックアップ復元前");
+    S=st;ensureYear();save();
+    hwT=null;hwD="";dId=null;
+    renderCurrent();toast("復元しました");
+  }catch{alert("復元できませんでした。");}
+}
+function dlLegacy(){
+  const lg=localStorage.getItem(LEGACY);if(!lg)return;
+  dl(`旧データ_移行前バックアップ_${today()}.json`,lg,"application/json");
+}
+
+/* =========================================================
+   起動
+========================================================= */
+function init(){
+  loadState();
+  renderYearSel();
+  show(location.hash.slice(1)||"home");
+  if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
+}
+window.addEventListener("load",init);
+</script>
 </body>
 </html>
