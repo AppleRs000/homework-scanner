@@ -118,6 +118,12 @@ details.card summary{font-weight:bold;font-size:18px;cursor:pointer}
 .qrcode img{display:none!important}
 
 /* 通知 */
+#flash{position:fixed;left:12px;right:12px;bottom:16px;z-index:60;display:none;padding:14px 16px;border-radius:14px;color:#fff;font-weight:bold;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+#flash .fn{font-size:34px;line-height:1.1}
+#flash .fm{font-size:17px}
+#flash.ok{background:#16a34a}#flash.warn{background:#d97706}#flash.err{background:#dc2626}
+.target-line{border-radius:10px;padding:10px;margin-bottom:8px;font-weight:bold;text-align:center;background:#eff6ff;color:#1d4ed8}
+.target-line.bad{background:#fef2f2;color:#b91c1c}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1e293b;color:#fff;padding:12px 18px;border-radius:12px;z-index:50;display:none;max-width:90%;text-align:center}
 
 @media(max-width:600px){
@@ -129,7 +135,7 @@ details.card summary{font-weight:bold;font-size:18px;cursor:pointer}
 @media print{
   @page{size:A4 portrait;margin:10mm}
   html,body{width:210mm;margin:0;padding:0;background:#fff!important}
-  header,.noprint,#toast{display:none!important}
+  header,.noprint,#toast,#flash{display:none!important}
   .wrap{padding:0;max-width:none}
   #view-qr .card{background:#fff;padding:0;margin:0;border-radius:0}
   .qr-page{width:190mm;height:277mm;margin:0;padding:0;border:0;border-radius:0;background:#fff;break-after:page;page-break-after:always;overflow:hidden}
@@ -187,6 +193,7 @@ details.card summary{font-weight:bold;font-size:18px;cursor:pointer}
 <div id="view-hw" class="view">
 
   <div class="card">
+    <div id="hwTarget" class="target-line"></div>
     <button id="hwScanBtn" class="scan" onclick="scHw.toggle()">🔊 スキャン開始</button>
     <button class="cam" onclick="scHw.sw()">🤳 カメラ切替</button>
     <div class="reader"><div id="hwReader"></div></div>
@@ -287,6 +294,7 @@ details.card summary{font-weight:bold;font-size:18px;cursor:pointer}
   </div>
 
   <div class="card">
+    <div id="drTarget" class="target-line"></div>
     <button id="drScanBtn" class="scan" onclick="scDr.toggle()">🔊 スキャン開始</button>
     <button class="cam" onclick="scDr.sw()">🤳 カメラ切替</button>
     <div class="reader"><div id="drReader"></div></div>
@@ -391,6 +399,7 @@ details.card summary{font-weight:bold;font-size:18px;cursor:pointer}
 </div>
 
 <div id="toast"></div>
+<div id="flash"></div>
 
 <script>
 /* =========================================================
@@ -427,7 +436,7 @@ function dl(name,text,mime){
 const LS="lsm_v1", BK="lsm_backups_v1", LEGACY="lsm_legacy_backup";
 let S=null;
 
-const newYearData=()=>({prefix:"01",size:30,tasks:[],records:{},drills:[]});
+const newYearData=()=>({prefix:"31",size:37,tasks:[],records:{},drills:[]});
 const Y=()=>S.years[S.year];
 
 function normalize(st){
@@ -518,12 +527,17 @@ function loadState(){
 const size=()=>Y().size;
 const prefix=()=>Y().prefix;
 const ids=()=>Array.from({length:size()},(_,i)=>pad(i+1));
-function idOf(v){
-  v=String(v).trim().replace(/[０-９]/g,s=>String.fromCharCode(s.charCodeAt(0)-65248));
-  if(!/^\d+$/.test(v))return null;
+function parseCode(v){
+  const raw=String(v).trim();
+  v=raw.replace(/[０-９]/g,s=>String.fromCharCode(s.charCodeAt(0)-65248));
+  if(!/^\d+$/.test(v))return{err:"QRの中身が番号ではありません（読み取り："+raw.slice(0,20)+"）"};
+  if(v.length===4&&v.slice(0,2)!==prefix()&&+v>size())
+    return{err:"クラス番号が違います（QR："+(+v.slice(0,2))+"／設定："+(+prefix())+"）。「年度・学級設定」を確認してください"};
   const n=(v.length===4&&v.slice(0,2)===prefix())?+v.slice(2):+v;
-  return n>=1&&n<=size()?pad(n):null;
+  if(!(n>=1&&n<=size()))return{err:"番号が範囲外です（読み取り："+raw+"／1〜"+size()+"番）"};
+  return{id:pad(n)};
 }
+function idOf(v){return parseCode(v).id||null;}
 
 /* =========================================================
    画面遷移
@@ -619,7 +633,7 @@ function beep(f){
 function mkScanner(p,onCode){
   let sc=null,cams=[],ci=0,run=false,lastC="",lastT=0;
   const ui=()=>{const b=$(p+"ScanBtn");if(!b)return;b.textContent=run?"⏹ スキャン停止":"🔊 スキャン開始";b.classList.toggle("stop",run);};
-  const ok=t=>{const n=Date.now();if(t===lastC&&n-lastT<1200)return;lastC=t;lastT=n;onCode(t);};
+  const ok=t=>{const n=Date.now();if(t===lastC&&n-lastT<2000){lastT=n;return;}lastC=t;lastT=n;try{onCode(t);}catch(e){console.error(e);flash({no:"!",msg:"⚠️ 処理中にエラー："+e.message,f:220});}};
   async function begin(cid){
     sc=new Html5Qrcode(p+"Reader");
     await sc.start(cid,{fps:20,qrbox:(w,h)=>{const s=Math.floor(Math.min(w,h)*.75);return{width:s,height:s};},aspectRatio:1},ok,()=>{});
@@ -651,10 +665,22 @@ function mkScanner(p,onCode){
 const scHw=mkScanner("hw",t=>hwOnCode(t));
 const scDr=mkScanner("dr",t=>drOnCode(t));
 
+let flashTimer=null;
+function flash(r){
+  const el=$("flash"),k=r.f>=880?"ok":r.f>=330?"warn":"err";
+  el.className=k;
+  el.innerHTML='<div class="fn"></div><div class="fm"></div>';
+  el.firstChild.textContent=r.no;
+  el.lastChild.textContent=r.msg;
+  el.style.display="block";
+  clearTimeout(flashTimer);
+  flashTimer=setTimeout(()=>{el.style.display="none";},k==="ok"?1800:4500);
+}
 function showLast(p,r){
   $(p+"LastNo").textContent=r.no;
   $(p+"LastMsg").textContent=r.msg;
   beep(r.f);
+  flash(r);
 }
 
 /* =========================================================
@@ -722,6 +748,13 @@ function renderHwTaskInfo(){
 
 function renderHwLive(){
   const t=T(),active=!!t&&!!hwD;
+  {
+    const tl=$("hwTarget"),isToday=active&&hwD===today();
+    tl.className="target-line"+(isToday?"":" bad");
+    tl.textContent=!active?"⚠ 宿題と提出日が未登録です。下の「宿題と提出日」で登録してください"
+      :(isToday?"記録先："+t.name+"　"+hwD+"（今日）"
+               :"⚠ 記録先は今日ではありません："+t.name+"　"+hwD+"。今日の提出日を追加してください");
+  }
   const r=active?rec(t.id,hwD):null;
   let den=0,sub=0,abs=0,off=0,rem=[];
   if(active){
@@ -775,10 +808,11 @@ function addDate(){
 function hwSubmit(text){
   const t=T();
   if(!t||!hwD)return{no:"—",msg:"📅 先に宿題と提出日を登録してください",f:220};
-  const id=idOf(text);
-  if(!id)return{no:"?",msg:"❌ 無効な番号",f:220};
+  const pc=parseCode(text);
+  if(!pc.id)return{no:"?",msg:"❌ "+pc.err,f:220};
+  const id=pc.id;
   const r=rec(t.id,hwD),s=stat(t,r,id);
-  if(s==="off")return{no:id,msg:"⏸ 提出対象外",f:330};
+  if(s==="off")return{no:id,msg:"⏸ 提出対象外（"+(t.targetOff.includes(id)?"この宿題全体":"この日")+"）",f:330};
   if(s==="absent")return{no:id,msg:"🚫 欠席登録",f:330};
   if(s==="done")return{no:id,msg:"⚠️ すでに提出済み",f:440};
   rec(t.id,hwD,true).submitted[id]={time:nowTime()};
@@ -958,6 +992,12 @@ function renderDrill(){
 
 function renderDrillLive(){
   const d=D(),active=!!d;
+  {
+    const tl=$("drTarget"),open=active&&!d.closed;
+    tl.className="target-line"+(open?"":" bad");
+    tl.textContent=!active?"⚠ 回収が未開始です。「＋ 新しい回収」で開始してください"
+      :(d.closed?"⚠ 「"+d.name+"」は回収終了中です。「回収を再開」してください":"回収中："+d.name+"　"+d.date);
+  }
   let den=0,sub=0,off=0,rem=[];
   if(active)ids().forEach(id=>{
     const s=dStat(d,id);
@@ -1003,8 +1043,9 @@ function drSubmit(text){
   const d=D();
   if(!d)return{no:"—",msg:"📖 先に「新しい回収」を開始してください",f:220};
   if(d.closed)return{no:"—",msg:"🔒 この回収は終了しています",f:220};
-  const id=idOf(text);
-  if(!id)return{no:"?",msg:"❌ 無効な番号",f:220};
+  const pc=parseCode(text);
+  if(!pc.id)return{no:"?",msg:"❌ "+pc.err,f:220};
+  const id=pc.id;
   const s=dStat(d,id);
   if(s==="off")return{no:id,msg:"⏸ 対象外",f:330};
   if(s==="done")return{no:id,msg:"⚠️ すでに提出済み",f:440};
